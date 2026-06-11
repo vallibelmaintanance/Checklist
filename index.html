@@ -1,0 +1,1004 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Building Maintenance System</title>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<style>
+:root{
+  --bg:#f0f2f5;--surface:#fff;--surface2:#f7f8fa;--border:#e4e6ea;
+  --text:#111318;--text2:#5c6370;--text3:#a0a6b0;
+  --accent:#1a56db;--accent-bg:#ebf0fd;
+  --ok:#166534;--ok-bg:#dcfce7;--ok-border:#86efac;
+  --issue:#b91c1c;--issue-bg:#fee2e2;--issue-border:#fca5a5;
+  --na:#374151;--na-bg:#f3f4f6;--na-border:#d1d5db;
+  --r:10px;--rs:6px;--sh:0 1px 4px rgba(0,0,0,0.08);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);font-size:15px;line-height:1.5;min-height:100vh;}
+
+/* ── HEADER ── */
+.app-header{background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:200;}
+.app-header-inner{max-width:960px;margin:0 auto;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.app-logo{display:flex;align-items:center;gap:10px;}
+.app-logo-icon{width:36px;height:36px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.app-logo-icon svg{width:18px;height:18px;stroke:white;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+.app-logo-title{font-size:15px;font-weight:700;letter-spacing:-.01em;}
+.app-logo-sub{font-size:11px;color:var(--text2);}
+.hdr-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 13px;border-radius:var(--rs);border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:13px;cursor:pointer;font-weight:500;transition:background .15s;white-space:nowrap;}
+.hdr-btn:hover{background:var(--surface2);}
+.hdr-btn svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+
+/* ── PAGES ── */
+.page{display:none;max-width:960px;margin:0 auto;padding:20px 16px 80px;}
+.page.show{display:block;}
+
+/* ── HOME GRID ── */
+.page-title{font-size:18px;font-weight:700;margin-bottom:4px;}
+.page-sub{font-size:13px;color:var(--text2);margin-bottom:20px;}
+.services-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px;}
+.service-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px;cursor:pointer;transition:box-shadow .15s,border-color .15s;box-shadow:var(--sh);}
+.service-card:hover{box-shadow:0 4px 14px rgba(0,0,0,0.1);border-color:#c5c9d4;}
+.sc-top{display:flex;align-items:center;gap:12px;margin-bottom:12px;}
+.sc-icon{width:42px;height:42px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:20px;}
+.sc-name{font-size:15px;font-weight:600;letter-spacing:-.01em;}
+.sc-last{font-size:12px;color:var(--text2);margin-top:1px;}
+.sc-stats{display:flex;gap:8px;flex-wrap:wrap;}
+.sc-badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;}
+.sc-badge.ok{background:var(--ok-bg);color:var(--ok);}
+.sc-badge.issue{background:var(--issue-bg);color:var(--issue);}
+.sc-badge.na{background:var(--na-bg);color:var(--na);}
+.sc-qr-btn{margin-top:12px;padding:5px 0;width:100%;border:1px dashed #c5c9d4;border-radius:var(--rs);background:transparent;font-size:12px;color:var(--text2);cursor:pointer;transition:background .15s;}
+.sc-qr-btn:hover{background:var(--surface2);}
+
+/* ── SERVICE DETAIL ── */
+.back-btn{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--text2);cursor:pointer;margin-bottom:16px;padding:5px 0;}
+.back-btn:hover{color:var(--text);}
+.back-btn svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+.detail-header{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;box-shadow:var(--sh);}
+.dh-left{display:flex;align-items:center;gap:14px;}
+.dh-icon{width:46px;height:46px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
+.dh-name{font-size:17px;font-weight:700;}
+.dh-sub{font-size:12px;color:var(--text2);margin-top:2px;}
+.dh-actions{display:flex;gap:8px;flex-wrap:wrap;}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:var(--rs);border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:13px;cursor:pointer;font-weight:500;transition:background .15s;white-space:nowrap;}
+.btn:hover{background:var(--surface2);}
+.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent);}
+.btn-primary:hover{background:#1447c0;}
+.btn svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+
+/* ── TABS ── */
+.tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:18px;background:var(--surface);border-radius:var(--r) var(--r) 0 0;padding:0 4px;}
+.tab{padding:11px 16px;font-size:13px;font-weight:500;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .15s;}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+
+/* ── STATS ROW ── */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;}
+@media(max-width:560px){.stats-row{grid-template-columns:repeat(2,1fr);}}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;text-align:center;box-shadow:var(--sh);}
+.stat-num{font-size:24px;font-weight:700;letter-spacing:-.03em;}
+.stat-lbl{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;margin-top:2px;}
+
+/* ── HISTORY ── */
+.search-wrap{position:relative;margin-bottom:12px;}
+.search-wrap input{width:100%;padding:9px 12px 9px 35px;border:1px solid var(--border);border-radius:var(--rs);font-size:14px;background:var(--surface);}
+.search-wrap input:focus{outline:none;border-color:var(--accent);}
+.search-ico{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:15px;height:15px;stroke:var(--text3);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+.filter-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;}
+.f-btn{padding:4px 11px;border-radius:20px;border:1px solid var(--border);background:var(--surface);font-size:12px;cursor:pointer;color:var(--text2);font-weight:500;transition:all .15s;}
+.f-btn.on{background:var(--accent);color:#fff;border-color:var(--accent);}
+.rec{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);margin-bottom:9px;overflow:hidden;box-shadow:var(--sh);}
+.rec-hdr{padding:13px 16px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.rec-hdr:hover{background:var(--surface2);}
+.rec-meta{flex:1;min-width:0;}
+.rec-date{font-size:14px;font-weight:600;}
+.rec-info{font-size:12px;color:var(--text2);margin-top:2px;}
+.rec-right{display:flex;gap:6px;align-items:center;flex-shrink:0;flex-wrap:wrap;}
+.badge{display:inline-flex;align-items:center;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600;}
+.b-ok{background:var(--ok-bg);color:var(--ok);}
+.b-issue{background:var(--issue-bg);color:var(--issue);}
+.b-na{background:var(--na-bg);color:var(--na);}
+.chev{width:16px;height:16px;stroke:var(--text3);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform .2s;flex-shrink:0;}
+.chev.open{transform:rotate(180deg);}
+.rec-body{display:none;border-top:1px solid var(--border);padding:14px 16px;}
+.rec-body.open{display:block;}
+.rb-section{margin-bottom:12px;}
+.rb-section-title{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;}
+.rb-item{display:flex;align-items:flex-start;gap:10px;padding:6px 0;border-bottom:1px solid var(--surface2);}
+.rb-item:last-child{border-bottom:none;}
+.rb-item-name{flex:1;font-size:13px;}
+.rb-item-note{font-size:11px;color:var(--text2);margin-top:2px;}
+.rb-edit-btn{font-size:11px;padding:3px 8px;border-radius:20px;border:1px solid var(--border);background:transparent;cursor:pointer;color:var(--text2);flex-shrink:0;}
+.rb-edit-btn:hover{background:var(--surface2);}
+.empty{text-align:center;padding:48px 20px;color:var(--text2);}
+.empty svg{width:38px;height:38px;stroke:var(--border);fill:none;stroke-width:1.5;stroke-linecap:round;margin:0 auto 12px;display:block;}
+
+/* ── SUBMIT FORM ── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px;margin-bottom:14px;box-shadow:var(--sh);}
+.card-title{font-size:14px;font-weight:600;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.card-title svg{width:15px;height:15px;stroke:var(--accent);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+@media(max-width:480px){.form-row{grid-template-columns:1fr;}}
+.fg{margin-bottom:14px;}
+.fg label{font-size:12px;font-weight:500;display:block;margin-bottom:5px;color:var(--text2);}
+.fi{width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:var(--rs);font-size:14px;background:var(--surface);color:var(--text);}
+.fi:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(26,86,219,.1);}
+.ci{background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:12px 14px;margin-bottom:8px;}
+.ci-name{font-size:14px;font-weight:500;margin-bottom:9px;}
+.ci-freq{font-size:11px;color:var(--text2);margin-bottom:9px;}
+.status-row{display:flex;gap:6px;flex-wrap:wrap;}
+.sb{padding:5px 12px;border-radius:20px;border:1.5px solid var(--border);background:transparent;font-size:12px;font-weight:600;cursor:pointer;color:var(--text2);transition:all .15s;}
+.sb.s-ok{background:var(--ok-bg);color:var(--ok);border-color:var(--ok);}
+.sb.s-issue{background:var(--issue-bg);color:var(--issue);border-color:var(--issue);}
+.sb.s-na{background:var(--na-bg);color:var(--na);border-color:#9ca3af;}
+.ci-note{margin-top:8px;display:none;}
+.ci-note.show{display:block;}
+.ci-note input{width:100%;padding:6px 10px;border:1px solid var(--border);border-radius:var(--rs);font-size:13px;}
+.ci-note input:focus{outline:none;border-color:var(--accent);}
+.submit-bar{position:sticky;bottom:0;background:var(--surface);border-top:1px solid var(--border);padding:11px 16px;margin:0 -16px;display:flex;gap:10px;}
+.submit-bar .btn{flex:1;justify-content:center;}
+.alert{padding:10px 14px;border-radius:var(--rs);font-size:13px;margin-bottom:12px;display:none;}
+.alert.show{display:block;}
+.a-ok{background:var(--ok-bg);color:var(--ok);border:1px solid var(--ok-border);}
+.a-err{background:var(--issue-bg);color:var(--issue);border:1px solid var(--issue-border);}
+
+/* ── LOCKED ── */
+.locked-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:36px 24px;text-align:center;box-shadow:var(--sh);}
+.locked-box svg{width:32px;height:32px;stroke:var(--text3);fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;margin:0 auto 12px;display:block;}
+.locked-box h3{font-size:15px;font-weight:600;margin-bottom:6px;}
+.locked-box p{font-size:13px;color:var(--text2);margin-bottom:16px;}
+
+/* ── PIN MODAL ── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:600;display:flex;align-items:center;justify-content:center;padding:20px;}
+.overlay.hidden{display:none;}
+.modal{background:var(--surface);border-radius:var(--r);padding:26px 22px;width:100%;max-width:320px;box-shadow:0 12px 40px rgba(0,0,0,.2);}
+.modal h3{font-size:16px;font-weight:600;margin-bottom:4px;}
+.modal .modal-sub{font-size:13px;color:var(--text2);margin-bottom:18px;}
+.pin-dots{display:flex;justify-content:center;gap:10px;margin-bottom:18px;}
+.pd{width:14px;height:14px;border-radius:50%;border:2px solid var(--border);transition:background .15s,border-color .15s;}
+.pd.on{background:var(--accent);border-color:var(--accent);}
+.keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.kk{padding:13px;text-align:center;border-radius:var(--rs);border:1px solid var(--border);background:var(--surface2);font-size:18px;font-weight:600;cursor:pointer;transition:background .1s;user-select:none;}
+.kk:active{background:var(--border);}
+.kk.sm{font-size:13px;font-weight:500;}
+.pin-err{color:#dc2626;font-size:12px;text-align:center;margin-top:8px;min-height:18px;}
+.modal-footer{display:flex;gap:8px;margin-top:14px;}
+.modal-footer .btn{flex:1;justify-content:center;}
+
+/* ── QR MODAL ── */
+.qr-wrap{text-align:center;}
+#qr-box{display:inline-block;padding:14px;background:#fff;border:1px solid var(--border);border-radius:var(--rs);margin:14px 0;}
+.qr-lbl{font-size:11px;color:var(--text2);word-break:break-all;margin-bottom:10px;}
+
+/* ── ADMIN PAGE ── */
+.admin-section{margin-bottom:24px;}
+.admin-section h3{font-size:14px;font-weight:600;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);}
+.svc-edit-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--surface2);}
+.svc-edit-row:last-child{border:none;}
+.svc-edit-row span{flex:1;font-size:14px;}
+.ico-btn{width:28px;height:28px;border-radius:var(--rs);border:1px solid var(--border);background:var(--surface);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.ico-btn:hover{background:var(--surface2);}
+.ico-btn svg{width:13px;height:13px;stroke:var(--text2);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+.task-edit-row{display:flex;align-items:center;gap:8px;padding:5px 0 5px 16px;border-bottom:1px solid var(--surface2);}
+.task-edit-row span{flex:1;font-size:13px;color:var(--text2);}
+.task-meta{font-size:11px;color:var(--text3);margin-left:4px;}
+.add-row{display:flex;gap:8px;margin-top:8px;}
+.add-row input{flex:1;padding:7px 10px;border:1px solid var(--border);border-radius:var(--rs);font-size:13px;}
+.add-row input:focus{outline:none;border-color:var(--accent);}
+.export-row{display:flex;gap:8px;flex-wrap:wrap;}
+.color-picker-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;}
+.cp{width:26px;height:26px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:border-color .15s;}
+.cp.sel{border-color:#333;}
+
+/* ── EDIT RECORD ── */
+.edit-item-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--surface2);}
+.edit-item-row:last-child{border:none;}
+.edit-item-name{flex:1;font-size:13px;}
+.edit-status-btns{display:flex;gap:4px;}
+.esb{padding:4px 9px;border-radius:20px;border:1.5px solid var(--border);background:transparent;font-size:11px;font-weight:600;cursor:pointer;color:var(--text2);}
+.esb.s-ok{background:var(--ok-bg);color:var(--ok);border-color:var(--ok);}
+.esb.s-issue{background:var(--issue-bg);color:var(--issue);border-color:var(--issue);}
+.esb.s-na{background:var(--na-bg);color:var(--na);border-color:#9ca3af;}
+
+/* Freq labels */
+.freq-badge{display:inline-block;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:600;background:var(--accent-bg);color:var(--accent);margin-left:6px;}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ HEADER ═══════════════ -->
+<header class="app-header">
+  <div class="app-header-inner">
+    <div class="app-logo">
+      <div class="app-logo-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+      </div>
+      <div>
+        <div class="app-logo-title" id="hdr-bname">Building Maintenance</div>
+        <div class="app-logo-sub">System</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="hdr-btn" onclick="openAdmin()">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 10-16 0"/></svg>
+        Admin
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- ═══════════════ HOME PAGE ═══════════════ -->
+<div id="page-home" class="page show">
+  <div class="page-title" id="home-bname">Building Maintenance</div>
+  <div class="page-sub">Select a system to view its checklist history or submit a new inspection.</div>
+  <div class="services-grid" id="services-grid"></div>
+</div>
+
+<!-- ═══════════════ SERVICE DETAIL PAGE ═══════════════ -->
+<div id="page-detail" class="page">
+  <div class="back-btn" onclick="goHome()">
+    <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+    All systems
+  </div>
+  <div class="detail-header">
+    <div class="dh-left">
+      <div class="dh-icon" id="dh-icon"></div>
+      <div>
+        <div class="dh-name" id="dh-name"></div>
+        <div class="dh-sub" id="dh-sub"></div>
+      </div>
+    </div>
+    <div class="dh-actions">
+      <button class="btn" onclick="showQR()">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="5" y="5" width="3" height="3"/><rect x="16" y="5" width="3" height="3"/><rect x="5" y="16" width="3" height="3"/><path d="M14 14h3v3h-3zM17 17h3v3h-3z"/></svg>
+        QR Code
+      </button>
+      <button class="btn btn-primary" onclick="openSubmitTab()">
+        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        New Check
+      </button>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" id="tab-hist" onclick="detailTab('history')">History</div>
+    <div class="tab" id="tab-submit" onclick="detailTab('submit')">Submit Check</div>
+  </div>
+
+  <!-- HISTORY TAB -->
+  <div id="dt-history">
+    <div class="stats-row" id="detail-stats"></div>
+    <div class="search-wrap">
+      <svg class="search-ico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" placeholder="Search records…" oninput="renderRecords()" id="hist-search">
+    </div>
+    <div class="filter-row" id="hist-filter"></div>
+    <div id="hist-list"></div>
+  </div>
+
+  <!-- SUBMIT TAB -->
+  <div id="dt-submit" style="display:none">
+    <div id="submit-locked-box" class="locked-box">
+      <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+      <h3>Technician login</h3>
+      <p>Enter your PIN to submit a new maintenance check.</p>
+      <button class="btn btn-primary" onclick="openPIN('submit')">Enter PIN</button>
+    </div>
+    <div id="submit-form-wrap" style="display:none">
+      <div class="alert a-ok" id="alert-ok">Checklist submitted successfully ✓</div>
+      <div class="alert a-err" id="alert-err" id="alert-err2"></div>
+      <div class="card">
+        <div class="card-title"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Technician details</div>
+        <div class="form-row">
+          <div class="fg"><label>Name *</label><input class="fi" id="f-tech" type="text" placeholder="Your full name"></div>
+          <div class="fg"><label>Date *</label><input class="fi" id="f-date" type="date"></div>
+        </div>
+        <div class="form-row">
+          <div class="fg"><label>Shift</label>
+            <select class="fi" id="f-shift">
+              <option>Morning (06:00–14:00)</option>
+              <option>Afternoon (14:00–22:00)</option>
+              <option>Night (22:00–06:00)</option>
+            </select>
+          </div>
+          <div class="fg"><label>Remarks</label><input class="fi" id="f-remarks" type="text" placeholder="General observations…"></div>
+        </div>
+      </div>
+      <div id="submit-checklist-items"></div>
+      <div class="submit-bar">
+        <button class="btn" onclick="lockSubmit()">Cancel</button>
+        <button class="btn btn-primary" onclick="doSubmit()">
+          <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+          Submit
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ ADMIN PAGE ═══════════════ -->
+<div id="page-admin" class="page">
+  <div class="back-btn" onclick="closeAdmin()">
+    <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+    Back
+  </div>
+  <div id="admin-locked" class="locked-box">
+    <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+    <h3>Admin access</h3>
+    <p>Enter your admin PIN to manage the system.</p>
+    <button class="btn btn-primary" onclick="openPIN('admin')">Enter PIN</button>
+  </div>
+  <div id="admin-panel" style="display:none">
+    <div class="page-title" style="margin-bottom:16px">Admin Panel</div>
+
+    <div class="card admin-section">
+      <div class="admin-section"><h3>Building name</h3>
+        <div class="fg"><input class="fi" id="adm-bname" type="text" placeholder="e.g. Sunrise Residencies"></div>
+        <button class="btn btn-primary" onclick="saveBName()">Save</button>
+      </div>
+    </div>
+
+    <div class="card admin-section">
+      <div class="admin-section"><h3>Change PIN</h3>
+        <div class="form-row">
+          <div class="fg"><label>New PIN (4 digits)</label><input class="fi" id="adm-np" type="password" inputmode="numeric" maxlength="4" placeholder="••••"></div>
+          <div class="fg"><label>Confirm PIN</label><input class="fi" id="adm-cp" type="password" inputmode="numeric" maxlength="4" placeholder="••••"></div>
+        </div>
+        <div id="pin-msg" style="font-size:13px;min-height:18px;margin-bottom:8px;"></div>
+        <button class="btn btn-primary" onclick="changePIN()">Update PIN</button>
+      </div>
+    </div>
+
+    <div class="card admin-section">
+      <div class="admin-section"><h3>Services & checklist tasks</h3>
+        <div id="adm-services"></div>
+      </div>
+    </div>
+
+    <div class="card admin-section">
+      <div class="admin-section"><h3>Data management</h3>
+        <div class="export-row">
+          <button class="btn" onclick="exportCSV()"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Export CSV</button>
+          <button class="btn" onclick="exportJSON()"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Backup JSON</button>
+          <button class="btn" onclick="document.getElementById('imp').click()"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Restore JSON</button>
+          <input type="file" id="imp" accept=".json" style="display:none" onchange="importJSON(event)">
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ PIN MODAL ═══════════════ -->
+<div class="overlay hidden" id="pin-overlay">
+  <div class="modal">
+    <h3>Enter PIN</h3>
+    <p class="modal-sub" id="pin-sub">Enter your 4-digit PIN.</p>
+    <div class="pin-dots">
+      <div class="pd" id="pd0"></div><div class="pd" id="pd1"></div>
+      <div class="pd" id="pd2"></div><div class="pd" id="pd3"></div>
+    </div>
+    <div class="keypad">
+      <div class="kk" onclick="pk('1')">1</div><div class="kk" onclick="pk('2')">2</div><div class="kk" onclick="pk('3')">3</div>
+      <div class="kk" onclick="pk('4')">4</div><div class="kk" onclick="pk('5')">5</div><div class="kk" onclick="pk('6')">6</div>
+      <div class="kk" onclick="pk('7')">7</div><div class="kk" onclick="pk('8')">8</div><div class="kk" onclick="pk('9')">9</div>
+      <div class="kk sm" onclick="pk('C')">Clear</div><div class="kk" onclick="pk('0')">0</div><div class="kk sm" onclick="pk('X')">⌫</div>
+    </div>
+    <div class="pin-err" id="pin-err"></div>
+    <div class="modal-footer"><button class="btn" onclick="closePIN()">Cancel</button></div>
+  </div>
+</div>
+
+<!-- ═══════════════ QR MODAL ═══════════════ -->
+<div class="overlay hidden" id="qr-overlay">
+  <div class="modal" style="max-width:380px;">
+    <h3 id="qr-title">QR Code</h3>
+    <p class="modal-sub">Scan to view checklist history for this system. Post on the equipment for instant access.</p>
+    <div class="qr-wrap">
+      <div id="qr-box"></div>
+      <div class="qr-lbl" id="qr-lbl"></div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-primary" onclick="printQR()" style="flex:1;justify-content:center">Print</button>
+      <button class="btn" onclick="document.getElementById('qr-overlay').classList.add('hidden')" style="flex:1;justify-content:center">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ EDIT RECORD MODAL ═══════════════ -->
+<div class="overlay hidden" id="edit-overlay">
+  <div class="modal" style="max-width:500px;max-height:90vh;overflow-y:auto;">
+    <h3>Edit record</h3>
+    <p class="modal-sub" id="edit-sub"></p>
+    <div id="edit-body"></div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeEdit()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveEdit()">Save changes</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════ DEFAULT DATA ═══════════════
+const SERVICES = [
+  { id:'chiller', name:'Chiller System', icon:'❄️', color:'#0ea5e9',
+    tasks:[
+      {name:'Chiller unit visual inspection', freq:'Daily'},
+      {name:'Chiller water inlet/outlet temperature', freq:'Daily'},
+      {name:'Condenser water flow check', freq:'Daily'},
+      {name:'Refrigerant pressure (high/low side)', freq:'Weekly'},
+      {name:'Oil level & oil pressure', freq:'Weekly'},
+      {name:'Chilled water pump operation', freq:'Daily'},
+      {name:'Condenser pump operation', freq:'Daily'},
+      {name:'Cooling tower fan operation', freq:'Daily'},
+      {name:'Water treatment chemical levels', freq:'Weekly'},
+      {name:'Vibration & noise check', freq:'Daily'},
+      {name:'Filter/strainer cleaning', freq:'Monthly'},
+      {name:'Control panel alarms clear', freq:'Daily'},
+    ]},
+  { id:'fire', name:'Fire System', icon:'🔥', color:'#ef4444',
+    tasks:[
+      {name:'Fire alarm panel status', freq:'Daily'},
+      {name:'Smoke detectors visual check', freq:'Weekly'},
+      {name:'Manual call points accessible', freq:'Weekly'},
+      {name:'Fire extinguishers inspection (seal/pressure)', freq:'Monthly'},
+      {name:'Fire hose reel condition & pressure', freq:'Monthly'},
+      {name:'Sprinkler heads visual check', freq:'Monthly'},
+      {name:'Fire pump operation test', freq:'Weekly'},
+      {name:'Emergency lighting check', freq:'Monthly'},
+      {name:'Fire doors operation & seals', freq:'Monthly'},
+      {name:'Alarm sounders function test', freq:'Monthly'},
+      {name:'Fire suppression system pressure', freq:'Weekly'},
+    ]},
+  { id:'generator', name:'Generator', icon:'⚡', color:'#f59e0b',
+    tasks:[
+      {name:'Fuel level check', freq:'Daily'},
+      {name:'Engine oil level', freq:'Daily'},
+      {name:'Coolant level', freq:'Daily'},
+      {name:'Battery voltage & condition', freq:'Daily'},
+      {name:'Visual leaks (fuel/oil/coolant)', freq:'Daily'},
+      {name:'Generator test run (no load)', freq:'Weekly'},
+      {name:'Auto transfer switch (ATS) operation', freq:'Weekly'},
+      {name:'Exhaust system condition', freq:'Weekly'},
+      {name:'Air filter condition', freq:'Monthly'},
+      {name:'Belt tension & condition', freq:'Monthly'},
+      {name:'Fuel tank drain (water/sediment)', freq:'Monthly'},
+      {name:'Panel alarms & indicators', freq:'Daily'},
+    ]},
+  { id:'supply_water', name:'Supply Water', icon:'💧', color:'#3b82f6',
+    tasks:[
+      {name:'Overhead tank level', freq:'Daily'},
+      {name:'Underground sump tank level', freq:'Daily'},
+      {name:'Booster pump operation', freq:'Daily'},
+      {name:'Transfer pump operation', freq:'Daily'},
+      {name:'Pressure gauge reading', freq:'Daily'},
+      {name:'Visible pipe leaks check', freq:'Daily'},
+      {name:'Ball valve condition', freq:'Weekly'},
+      {name:'Water quality/clarity check', freq:'Weekly'},
+      {name:'Tank cleaning schedule compliance', freq:'Monthly'},
+      {name:'Meter reading logged', freq:'Monthly'},
+      {name:'Backflow preventer check', freq:'Monthly'},
+    ]},
+  { id:'electric', name:'Electric Panels', icon:'🔌', color:'#8b5cf6',
+    tasks:[
+      {name:'Main LV panel visual inspection', freq:'Daily'},
+      {name:'Switchgear temperature (IR check)', freq:'Weekly'},
+      {name:'MCB/MCCB tripped breakers check', freq:'Daily'},
+      {name:'Busbar connection tightness', freq:'Monthly'},
+      {name:'Earthing & bonding continuity', freq:'Monthly'},
+      {name:'Panel door seals & locks', freq:'Weekly'},
+      {name:'Power factor reading', freq:'Weekly'},
+      {name:'Voltage & current readings (R/Y/B)', freq:'Daily'},
+      {name:'UPS battery level & health', freq:'Daily'},
+      {name:'Cable tray cleanliness', freq:'Monthly'},
+      {name:'Panel ventilation/cooling fans', freq:'Weekly'},
+      {name:'Indicator lamps functional', freq:'Daily'},
+    ]},
+  { id:'ahu', name:'AHU', icon:'🌬️', color:'#10b981',
+    tasks:[
+      {name:'AHU unit visual inspection', freq:'Daily'},
+      {name:'Supply/return air temperature', freq:'Daily'},
+      {name:'Fan belt condition & tension', freq:'Weekly'},
+      {name:'Air filter condition', freq:'Weekly'},
+      {name:'Coil cleanliness check', freq:'Monthly'},
+      {name:'Condensate drain pan & pipe', freq:'Weekly'},
+      {name:'Damper operation', freq:'Monthly'},
+      {name:'Vibration & noise level', freq:'Daily'},
+      {name:'Controls & thermostat accuracy', freq:'Weekly'},
+      {name:'Fresh air intake clear of obstruction', freq:'Weekly'},
+      {name:'Insulation condition', freq:'Monthly'},
+    ]},
+  { id:'passenger_lift', name:'Passenger Lifts', icon:'🛗', color:'#6366f1',
+    tasks:[
+      {name:'Lift operation & ride quality', freq:'Daily'},
+      {name:'Door opening/closing operation', freq:'Daily'},
+      {name:'Door safety sensor function', freq:'Daily'},
+      {name:'Emergency call button test', freq:'Weekly'},
+      {name:'Interior lighting & ventilation', freq:'Daily'},
+      {name:'Floor levelling accuracy', freq:'Daily'},
+      {name:'Overload indicator function', freq:'Weekly'},
+      {name:'Machine room temperature', freq:'Daily'},
+      {name:'Oil level (machine room)', freq:'Weekly'},
+      {name:'Guide rail lubrication', freq:'Monthly'},
+      {name:'Safety gear & brake test', freq:'Monthly'},
+      {name:'Pit sump check (no water)', freq:'Weekly'},
+      {name:'Controller panel alarms clear', freq:'Daily'},
+    ]},
+  { id:'car_lift', name:'Car Lifts', icon:'🚗', color:'#f97316',
+    tasks:[
+      {name:'Hydraulic oil level', freq:'Daily'},
+      {name:'Platform level & alignment', freq:'Daily'},
+      {name:'Safety interlock operation', freq:'Daily'},
+      {name:'Control panel visual check', freq:'Daily'},
+      {name:'Hose & fitting leaks', freq:'Weekly'},
+      {name:'Platform structure inspection', freq:'Weekly'},
+      {name:'Limit switch operation', freq:'Weekly'},
+      {name:'Pump motor condition', freq:'Weekly'},
+      {name:'Guide rollers/wheels', freq:'Monthly'},
+      {name:'Load capacity marking visible', freq:'Monthly'},
+      {name:'Emergency lowering function', freq:'Monthly'},
+    ]},
+  { id:'car_stacker', name:'Car Stackers', icon:'🅿️', color:'#ec4899',
+    tasks:[
+      {name:'Stacker operation test (up/down)', freq:'Daily'},
+      {name:'Safety sensor & photo-eye test', freq:'Daily'},
+      {name:'Drive chain/cable condition', freq:'Weekly'},
+      {name:'Chain/cable lubrication', freq:'Monthly'},
+      {name:'Structural frame inspection', freq:'Monthly'},
+      {name:'Motor & gearbox condition', freq:'Weekly'},
+      {name:'Control panel & wiring check', freq:'Weekly'},
+      {name:'Emergency stop function', freq:'Weekly'},
+      {name:'Platform alignment & levelness', freq:'Daily'},
+      {name:'Load capacity marking visible', freq:'Monthly'},
+      {name:'Noise & vibration check', freq:'Daily'},
+    ]},
+];
+
+// ═══════════════ STATE ═══════════════
+let S = {
+  pin: '1234',
+  buildingName: 'Building Maintenance',
+  services: JSON.parse(JSON.stringify(SERVICES)),
+  records: {},   // { serviceId: [ ...records ] }
+};
+
+let curSvcId = null;
+let pinTarget = '';
+let pinBuf = '';
+let submitUnlocked = false;
+let adminUnlocked = false;
+let activeFilter = 'all';
+let editRecord = null; // { svcId, recIdx }
+
+// ═══════════════ LOAD / SAVE ═══════════════
+function load(){
+  try{
+    const d = localStorage.getItem('bmaint2');
+    if(d){ const p=JSON.parse(d); S={...S,...p}; }
+  }catch(e){}
+  // ensure records keys exist for all services
+  S.services.forEach(s=>{ if(!S.records[s.id]) S.records[s.id]=[]; });
+}
+function save(){ localStorage.setItem('bmaint2', JSON.stringify(S)); }
+
+// ═══════════════ ROUTING ═══════════════
+function goHome(){
+  document.getElementById('page-home').classList.add('show');
+  document.getElementById('page-detail').classList.remove('show');
+  document.getElementById('page-admin').classList.remove('show');
+  renderHome();
+}
+function openAdmin(){
+  document.getElementById('page-home').classList.remove('show');
+  document.getElementById('page-detail').classList.remove('show');
+  document.getElementById('page-admin').classList.add('show');
+  document.getElementById('admin-locked').style.display='';
+  document.getElementById('admin-panel').style.display='none';
+  adminUnlocked=false;
+}
+function closeAdmin(){ goHome(); }
+function openService(id){
+  curSvcId=id; submitUnlocked=false; activeFilter='all';
+  const svc=getSvc(id);
+  document.getElementById('page-home').classList.remove('show');
+  document.getElementById('page-detail').classList.add('show');
+  document.getElementById('dh-icon').textContent=svc.icon;
+  document.getElementById('dh-icon').style.background=svc.color+'22';
+  document.getElementById('dh-name').textContent=svc.name;
+  const recs=S.records[id]||[];
+  document.getElementById('dh-sub').textContent=recs.length+' records';
+  document.getElementById('submit-locked-box').style.display='';
+  document.getElementById('submit-form-wrap').style.display='none';
+  detailTab('history');
+}
+
+// ═══════════════ HOME ═══════════════
+function renderHome(){
+  document.getElementById('hdr-bname').textContent=S.buildingName;
+  document.getElementById('home-bname').textContent=S.buildingName;
+  const grid=document.getElementById('services-grid');
+  grid.innerHTML=S.services.map(svc=>{
+    const recs=S.records[svc.id]||[];
+    const last=recs.length?recs[recs.length-1]:null;
+    const lastStr=last?fmtDate(last.date)+' · '+last.technician:'No records yet';
+    const issues=recs.filter(r=>r.items.some(i=>i.status==='issue')).length;
+    const ok=recs.filter(r=>r.items.every(i=>i.status!=='issue')).length;
+    return `<div class="service-card" onclick="openService('${svc.id}')">
+      <div class="sc-top">
+        <div class="sc-icon" style="background:${svc.color}22;font-size:22px">${svc.icon}</div>
+        <div>
+          <div class="sc-name">${svc.name}</div>
+          <div class="sc-last">${lastStr}</div>
+        </div>
+      </div>
+      <div class="sc-stats">
+        <span class="sc-badge ok">${recs.length} checks</span>
+        ${issues?`<span class="sc-badge issue">${issues} with issues</span>`:''}
+        ${svc.tasks.length?`<span class="sc-badge na">${svc.tasks.length} tasks</span>`:''}
+      </div>
+      <button class="sc-qr-btn" onclick="event.stopPropagation();qrForService('${svc.id}')">📲 Show QR code</button>
+    </div>`;
+  }).join('');
+}
+
+function qrForService(id){
+  const svc=getSvc(id);
+  const url=window.location.href.split('?')[0].split('#')[0]+'?svc='+id;
+  document.getElementById('qr-title').textContent=svc.name+' — QR Code';
+  document.getElementById('qr-lbl').textContent=url;
+  const box=document.getElementById('qr-box');
+  box.innerHTML='';
+  new QRCode(box,{text:url,width:200,height:200,colorDark:'#111318',colorLight:'#ffffff'});
+  document.getElementById('qr-overlay').classList.remove('hidden');
+}
+
+// ═══════════════ DETAIL TABS ═══════════════
+function detailTab(t){
+  document.getElementById('tab-hist').classList.toggle('active',t==='history');
+  document.getElementById('tab-submit').classList.toggle('active',t==='submit');
+  document.getElementById('dt-history').style.display=t==='history'?'':'none';
+  document.getElementById('dt-submit').style.display=t==='submit'?'':'none';
+  if(t==='history'){ renderStats(); renderRecords(); }
+  if(t==='submit' && submitUnlocked){ renderSubmitForm(); }
+}
+function openSubmitTab(){ detailTab('submit'); }
+
+// ═══════════════ STATS ═══════════════
+function renderStats(){
+  const recs=S.records[curSvcId]||[];
+  const total=recs.length;
+  const issues=recs.filter(r=>r.items.some(i=>i.status==='issue')).length;
+  const now=new Date();
+  const month=recs.filter(r=>{const d=new Date(r.date);return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();}).length;
+  const week=recs.filter(r=>{const d=new Date(r.date);const diff=(now-d)/86400000;return diff<=7;}).length;
+  document.getElementById('detail-stats').innerHTML=`
+    <div class="stat"><div class="stat-num">${total}</div><div class="stat-lbl">Total checks</div></div>
+    <div class="stat"><div class="stat-num">${month}</div><div class="stat-lbl">This month</div></div>
+    <div class="stat"><div class="stat-num">${week}</div><div class="stat-lbl">Last 7 days</div></div>
+    <div class="stat"><div class="stat-num" style="color:${issues>0?'var(--issue)':'var(--ok)'};">${issues}</div><div class="stat-lbl">With issues</div></div>
+  `;
+  // filter buttons by technician
+  const techs=['all',...new Set(recs.map(r=>r.technician))];
+  document.getElementById('hist-filter').innerHTML=techs.map(t=>
+    `<div class="f-btn ${activeFilter===t?'on':''}" onclick="setFilter('${t}')">${t==='all'?'All':t}</div>`
+  ).join('');
+}
+
+function setFilter(f){ activeFilter=f; renderStats(); renderRecords(); }
+
+// ═══════════════ RECORDS ═══════════════
+function renderRecords(){
+  const q=(document.getElementById('hist-search').value||'').toLowerCase();
+  let recs=[...(S.records[curSvcId]||[])].reverse();
+  if(q) recs=recs.filter(r=>(r.technician||'').toLowerCase().includes(q)||(r.date||'').includes(q)||(r.remarks||'').toLowerCase().includes(q)||r.items.some(i=>(i.name||'').toLowerCase().includes(q)));
+  if(activeFilter!=='all') recs=recs.filter(r=>r.technician===activeFilter);
+  const el=document.getElementById('hist-list');
+  if(!recs.length){
+    el.innerHTML=`<div class="empty"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg><p>No records yet.<br>Submit the first check using the Submit tab.</p></div>`;
+    return;
+  }
+  el.innerHTML=recs.map((r,vi)=>{
+    const realIdx=findRecIdx(curSvcId,r.id);
+    const ok=r.items.filter(i=>i.status==='ok').length;
+    const issue=r.items.filter(i=>i.status==='issue').length;
+    const na=r.items.filter(i=>i.status==='na').length;
+    const unset=r.items.filter(i=>!i.status).length;
+    return `<div class="rec">
+      <div class="rec-hdr" onclick="toggleRec(this)">
+        <div class="rec-meta">
+          <div class="rec-date">${fmtDate(r.date)} · ${r.shift.split(' ')[0]}</div>
+          <div class="rec-info">${r.technician}${r.remarks?' · '+r.remarks:''}</div>
+        </div>
+        <div class="rec-right">
+          ${ok?`<span class="badge b-ok">${ok} OK</span>`:''}
+          ${issue?`<span class="badge b-issue">${issue} Issue</span>`:''}
+          ${na?`<span class="badge b-na">${na} N/A</span>`:''}
+          ${unset?`<span class="badge b-na">${unset} Pending</span>`:''}
+          <svg class="chev" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+      </div>
+      <div class="rec-body">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <span style="font-size:12px;color:var(--text2);">Submitted ${r.submittedAt?new Date(r.submittedAt).toLocaleString():r.date}</span>
+          <button class="rb-edit-btn" onclick="openEdit('${curSvcId}',${realIdx})">✏️ Edit</button>
+        </div>
+        <div class="rb-section">
+          ${r.items.map(it=>`
+            <div class="rb-item">
+              <div class="rb-item-name">
+                <div>${it.name}<span class="freq-badge">${it.freq||''}</span></div>
+                ${it.note?`<div class="rb-item-note">📝 ${it.note}</div>`:''}
+              </div>
+              <span class="badge ${it.status==='ok'?'b-ok':it.status==='issue'?'b-issue':'b-na'}">${it.status==='ok'?'OK':it.status==='issue'?'Issue':it.status==='na'?'N/A':'—'}</span>
+            </div>`).join('')}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleRec(hdr){
+  const body=hdr.nextElementSibling;
+  const chev=hdr.querySelector('.chev');
+  const open=body.classList.toggle('open');
+  chev.classList.toggle('open',open);
+}
+
+// ═══════════════ SUBMIT FORM ═══════════════
+function renderSubmitForm(){
+  const svc=getSvc(curSvcId);
+  document.getElementById('f-date').value=new Date().toISOString().split('T')[0];
+  document.getElementById('submit-checklist-items').innerHTML=`
+    <div class="card">
+      <div class="card-title"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/></svg>${svc.name} — Checklist</div>
+      ${svc.tasks.map((t,i)=>{
+        const sid=`item_${i}`;
+        return `<div class="ci">
+          <div class="ci-name">${t.name}</div>
+          <div class="ci-freq">Frequency: ${t.freq}</div>
+          <div class="status-row">
+            <button class="sb" onclick="setS(this,'ok')" data-i="${i}">✓ OK</button>
+            <button class="sb" onclick="setS(this,'issue')" data-i="${i}">⚠ Issue</button>
+            <button class="sb" onclick="setS(this,'na')" data-i="${i}">— N/A</button>
+          </div>
+          <div class="ci-note" id="cin_${i}"><input type="text" placeholder="Describe issue or note…"></div>
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+
+function setS(btn,status){
+  const row=btn.closest('.status-row');
+  row.querySelectorAll('.sb').forEach(b=>{ b.classList.remove('s-ok','s-issue','s-na'); b.dataset.status=''; });
+  btn.classList.add('s-'+status); btn.dataset.status=status;
+  const idx=btn.dataset.i;
+  const noteEl=document.getElementById('cin_'+idx);
+  noteEl.classList.toggle('show',status==='issue');
+}
+
+function doSubmit(){
+  const tech=document.getElementById('f-tech').value.trim();
+  const date=document.getElementById('f-date').value;
+  const shift=document.getElementById('f-shift').value;
+  const remarks=document.getElementById('f-remarks').value.trim();
+  const errEl=document.getElementById('alert-err');
+  if(!tech||!date){ showAlert('alert-err','Please enter your name and date.'); return; }
+  const svc=getSvc(curSvcId);
+  const items=svc.tasks.map((t,i)=>{
+    const btns=document.querySelectorAll(`.status-row button[data-i="${i}"]`);
+    let status=''; btns.forEach(b=>{ if(b.dataset.status) status=b.dataset.status; });
+    const noteInput=document.getElementById('cin_'+i)?.querySelector('input');
+    return { name:t.name, freq:t.freq, status, note:noteInput?noteInput.value.trim():'' };
+  });
+  if(!S.records[curSvcId]) S.records[curSvcId]=[];
+  S.records[curSvcId].push({ id:Date.now(), date, shift, technician:tech, remarks, items, submittedAt:new Date().toISOString() });
+  save();
+  showAlert('alert-ok','Checklist submitted successfully ✓');
+  document.getElementById('f-tech').value='';
+  document.getElementById('f-remarks').value='';
+  document.getElementById('dh-sub').textContent=(S.records[curSvcId].length)+' records';
+  renderSubmitForm();
+}
+
+function lockSubmit(){ submitUnlocked=false; document.getElementById('submit-locked-box').style.display=''; document.getElementById('submit-form-wrap').style.display='none'; }
+
+// ═══════════════ EDIT RECORD ═══════════════
+function openEdit(svcId,recIdx){
+  // Need PIN
+  editRecord={svcId,recIdx};
+  openPIN('edit');
+}
+function doOpenEdit(){
+  const r=S.records[editRecord.svcId][editRecord.recIdx];
+  document.getElementById('edit-sub').textContent=fmtDate(r.date)+' · '+r.technician;
+  document.getElementById('edit-body').innerHTML=`
+    <div style="margin-bottom:12px;">
+      <div class="fg"><label>Technician</label><input class="fi" id="e-tech" value="${r.technician}"></div>
+      <div class="fg"><label>Remarks</label><input class="fi" id="e-rem" value="${r.remarks||''}"></div>
+    </div>
+    <div style="max-height:300px;overflow-y:auto;">
+      ${r.items.map((it,i)=>`
+        <div class="edit-item-row">
+          <div class="edit-item-name">${it.name}<br><span style="font-size:11px;color:var(--text3)">${it.freq}</span></div>
+          <div class="edit-status-btns">
+            <button class="esb ${it.status==='ok'?'s-ok':''}" onclick="eSetS(this,${i},'ok')">OK</button>
+            <button class="esb ${it.status==='issue'?'s-issue':''}" onclick="eSetS(this,${i},'issue')">Issue</button>
+            <button class="esb ${it.status==='na'?'s-na':''}" onclick="eSetS(this,${i},'na')">N/A</button>
+          </div>
+        </div>
+        <div class="ci-note ${it.status==='issue'?'show':''}" id="en_${i}"><input type="text" placeholder="Issue note…" value="${it.note||''}"></div>
+      `).join('')}
+    </div>`;
+  document.getElementById('edit-overlay').classList.remove('hidden');
+}
+function eSetS(btn,i,status){
+  const row=btn.closest('.edit-status-btns');
+  row.querySelectorAll('.esb').forEach(b=>b.classList.remove('s-ok','s-issue','s-na'));
+  btn.classList.add('s-'+status);
+  btn.dataset.s=status;
+  document.getElementById('en_'+i)?.classList.toggle('show',status==='issue');
+}
+function saveEdit(){
+  const r=S.records[editRecord.svcId][editRecord.recIdx];
+  r.technician=document.getElementById('e-tech').value.trim()||r.technician;
+  r.remarks=document.getElementById('e-rem').value.trim();
+  r.items.forEach((it,i)=>{
+    const row=document.querySelectorAll(`#edit-body .edit-status-btns`)[i];
+    if(!row) return;
+    const active=row.querySelector('.s-ok,.s-issue,.s-na');
+    if(active) it.status=active.classList.contains('s-ok')?'ok':active.classList.contains('s-issue')?'issue':'na';
+    const noteInput=document.getElementById('en_'+i)?.querySelector('input');
+    if(noteInput) it.note=noteInput.value.trim();
+  });
+  save(); closeEdit(); renderRecords(); renderStats();
+}
+function closeEdit(){ document.getElementById('edit-overlay').classList.add('hidden'); editRecord=null; }
+
+// ═══════════════ PIN ═══════════════
+function openPIN(target){
+  pinTarget=target; pinBuf='';
+  document.getElementById('pin-err').textContent='';
+  document.getElementById('pin-sub').textContent=target==='admin'?'Enter admin PIN to manage settings.':'Enter your PIN to continue.';
+  updateDots();
+  document.getElementById('pin-overlay').classList.remove('hidden');
+}
+function closePIN(){ document.getElementById('pin-overlay').classList.add('hidden'); pinBuf=''; }
+function pk(k){
+  if(k==='X') pinBuf=pinBuf.slice(0,-1);
+  else if(k==='C') pinBuf='';
+  else if(pinBuf.length<4) pinBuf+=k;
+  updateDots();
+  document.getElementById('pin-err').textContent='';
+  if(pinBuf.length===4) setTimeout(checkPIN,120);
+}
+function updateDots(){ for(let i=0;i<4;i++) document.getElementById('pd'+i).classList.toggle('on',i<pinBuf.length); }
+function checkPIN(){
+  if(pinBuf===S.pin){
+    closePIN();
+    if(pinTarget==='submit'){ submitUnlocked=true; document.getElementById('submit-locked-box').style.display='none'; document.getElementById('submit-form-wrap').style.display='block'; renderSubmitForm(); }
+    if(pinTarget==='admin'){ adminUnlocked=true; document.getElementById('admin-locked').style.display='none'; document.getElementById('admin-panel').style.display='block'; document.getElementById('adm-bname').value=S.buildingName; renderAdminServices(); }
+    if(pinTarget==='edit'){ doOpenEdit(); }
+  } else {
+    document.getElementById('pin-err').textContent='Incorrect PIN. Try again.';
+    pinBuf=''; updateDots();
+  }
+}
+
+// ═══════════════ QR ═══════════════
+function showQR(){
+  const url=window.location.href.split('?')[0].split('#')[0]+'?svc='+curSvcId;
+  qrForService(curSvcId);
+}
+function printQR(){
+  const svc=getSvc(curSvcId||S.services[0].id);
+  const url=document.getElementById('qr-lbl').textContent;
+  const w=window.open('','_blank');
+  w.document.write(`<html><body style="text-align:center;font-family:sans-serif;padding:48px"><div style="font-size:28px;margin-bottom:8px">${svc.icon}</div><h2 style="margin:0 0 4px">${S.buildingName}</h2><h3 style="margin:0 0 4px;color:#666;font-weight:500">${svc.name}</h3><p style="color:#999;margin:0 0 20px;font-size:14px">Scan to view maintenance checklist history</p>${document.getElementById('qr-box').innerHTML}<p style="margin-top:16px;font-size:11px;color:#aaa">${url}</p></body></html>`);
+  w.document.close(); w.print();
+}
+
+// ═══════════════ ADMIN ═══════════════
+function saveBName(){
+  const v=document.getElementById('adm-bname').value.trim();
+  if(!v) return;
+  S.buildingName=v; save();
+  document.getElementById('hdr-bname').textContent=v;
+  document.getElementById('home-bname').textContent=v;
+  flashBtn(event.target,'Saved!');
+}
+function changePIN(){
+  const np=document.getElementById('adm-np').value;
+  const cp=document.getElementById('adm-cp').value;
+  const msg=document.getElementById('pin-msg');
+  if(!/^\d{4}$/.test(np)){ msg.style.color='var(--issue)'; msg.textContent='PIN must be 4 digits.'; return; }
+  if(np!==cp){ msg.style.color='var(--issue)'; msg.textContent='PINs do not match.'; return; }
+  S.pin=np; save();
+  msg.style.color='var(--ok)'; msg.textContent='PIN updated.';
+  document.getElementById('adm-np').value=''; document.getElementById('adm-cp').value='';
+  setTimeout(()=>msg.textContent='',2500);
+}
+
+function renderAdminServices(){
+  document.getElementById('adm-services').innerHTML=S.services.map((svc,si)=>`
+    <div style="margin-bottom:16px;border:1px solid var(--border);border-radius:var(--rs);padding:12px;">
+      <div class="svc-edit-row">
+        <span style="font-size:16px;margin-right:6px">${svc.icon}</span>
+        <span style="font-weight:600">${svc.name}</span>
+        <div style="font-size:12px;color:var(--text2);flex:1;text-align:right">${svc.tasks.length} tasks</div>
+      </div>
+      ${svc.tasks.map((t,ti)=>`
+        <div class="task-edit-row">
+          <span>${t.name}</span>
+          <span class="task-meta">${t.freq}</span>
+          <div class="ico-btn" onclick="removeTask(${si},${ti})" title="Remove"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
+        </div>`).join('')}
+      <div class="add-row" style="margin-top:8px;padding-left:16px">
+        <input type="text" id="nt_${si}" placeholder="New task name">
+        <select class="fi" id="nf_${si}" style="width:120px;padding:7px 8px;font-size:12px;">
+          <option>Daily</option><option>Weekly</option><option>Monthly</option><option>Quarterly</option>
+        </select>
+        <button class="btn btn-primary" onclick="addTask(${si})">+ Add</button>
+      </div>
+    </div>`).join('');
+}
+
+function addTask(si){
+  const v=document.getElementById('nt_'+si).value.trim();
+  const f=document.getElementById('nf_'+si).value;
+  if(!v) return;
+  S.services[si].tasks.push({name:v,freq:f});
+  save(); renderAdminServices();
+}
+function removeTask(si,ti){
+  S.services[si].tasks.splice(ti,1);
+  save(); renderAdminServices();
+}
+
+// ═══════════════ EXPORT ═══════════════
+function exportCSV(){
+  const rows=[['Service','Date','Shift','Technician','Task','Frequency','Status','Note','Remarks','Submitted At']];
+  S.services.forEach(svc=>{
+    (S.records[svc.id]||[]).forEach(r=>{
+      r.items.forEach(it=>{
+        rows.push([svc.name,r.date,r.shift,r.technician,it.name,it.freq||'',it.status,it.note||'',r.remarks||'',r.submittedAt||'']);
+      });
+    });
+  });
+  const csv=rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  dl('maintenance_export.csv',csv,'text/csv');
+}
+function exportJSON(){ dl('maintenance_backup.json',JSON.stringify(S,null,2),'application/json'); }
+function importJSON(e){
+  const f=e.target.files[0]; if(!f) return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    try{
+      const p=JSON.parse(ev.target.result);
+      if(confirm('Restore backup? This replaces all current data.')){ S={...S,...p}; save(); load(); goHome(); alert('Restored successfully.'); }
+    }catch(err){ alert('Invalid backup file.'); }
+  };
+  reader.readAsText(f); e.target.value='';
+}
+
+// ═══════════════ UTILS ═══════════════
+function getSvc(id){ return S.services.find(s=>s.id===id)||S.services[0]; }
+function findRecIdx(svcId,recId){ return (S.records[svcId]||[]).findIndex(r=>r.id===recId); }
+function fmtDate(d){ if(!d) return ''; return new Date(d+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}); }
+function showAlert(id,msg){ const el=document.getElementById(id); el.textContent=msg; el.classList.add('show'); setTimeout(()=>el.classList.remove('show'),3500); }
+function flashBtn(btn,msg){ const orig=btn.textContent; btn.textContent=msg; setTimeout(()=>btn.textContent=orig,1500); }
+function dl(name,content,type){ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([content],{type})); a.download=name; a.click(); }
+
+// ═══════════════ URL ROUTING ═══════════════
+function initRoute(){
+  const params=new URLSearchParams(window.location.search);
+  const svc=params.get('svc');
+  if(svc && S.services.find(s=>s.id===svc)){ openService(svc); }
+  else{ goHome(); }
+}
+
+// ═══════════════ BOOT ═══════════════
+load();
+initRoute();
+</script>
+</body>
+</html>
