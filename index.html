@@ -238,10 +238,17 @@ textarea.fi{resize:vertical;min-height:70px;}
         <div class="logo-s">Maintenance System</div>
       </div>
     </div>
-    <button class="btn" onclick="openAdmin()">
-      <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 10-16 0"/></svg>
-      Admin
-    </button>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span id="sync-badge" style="font-size:11px;color:var(--tx2);font-weight:500;">Loading…</span>
+      <button class="btn" onclick="refreshFromCloud()" title="Refresh shared data">
+        <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+        Refresh
+      </button>
+      <button class="btn" onclick="openAdmin()">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 10-16 0"/></svg>
+        Admin
+      </button>
+    </div>
   </div>
 </header>
 
@@ -614,14 +621,76 @@ let curSvc=null, pinTarget='', pinBuf='';
 let subUnlocked=false, adminUnlocked=false, srUnlocked=false;
 let activeFil='all', editRec=null, esrIdx=null;
 
-function load(){
-  try{ const d=localStorage.getItem('bmaint4'); if(d) S={...S,...JSON.parse(d)}; }catch(e){}
+// ── CLOUD SYNC (Google Sheets via Apps Script) ──
+const CLOUD_URL = 'https://script.google.com/macros/s/AKfycbxGoThDgOPJSkS5sE7802_t3FZ2aX0lqXExEDUoVH4oVSYOqHc89Eyg0ivQeeAP2OWgJg/exec';
+let saveTimer=null;
+let cloudOK=false;
+
+function ensureDefaults(){
   S.services.forEach(s=>{
     if(!S.records[s.id]) S.records[s.id]=[];
     if(!S.serviceRecs[s.id]) S.serviceRecs[s.id]=[];
   });
 }
-function save(){ localStorage.setItem('bmaint4',JSON.stringify(S)); }
+
+function loadLocal(){
+  try{ const d=localStorage.getItem('bmaint4'); if(d) S={...S,...JSON.parse(d)}; }catch(e){}
+  ensureDefaults();
+}
+
+async function load(){
+  loadLocal();
+  try{
+    const res = await fetch(CLOUD_URL+'?action=load&t='+Date.now());
+    const json = await res.json();
+    if(json.ok && json.data){
+      S = {...S, ...json.data};
+      ensureDefaults();
+      localStorage.setItem('bmaint4',JSON.stringify(S));
+      cloudOK=true;
+    } else {
+      cloudOK = !!json.ok;
+    }
+  }catch(e){
+    cloudOK=false;
+  }
+  updateSyncBadge();
+}
+
+function save(){
+  localStorage.setItem('bmaint4',JSON.stringify(S));
+  if(saveTimer) clearTimeout(saveTimer);
+  saveTimer=setTimeout(pushToCloud, 600);
+}
+
+async function pushToCloud(){
+  try{
+    const body = new URLSearchParams();
+    body.set('action','save');
+    body.set('data', JSON.stringify(S));
+    const res = await fetch(CLOUD_URL, { method:'POST', body });
+    const json = await res.json();
+    cloudOK = !!json.ok;
+  }catch(e){
+    cloudOK=false;
+  }
+  updateSyncBadge();
+}
+
+async function refreshFromCloud(){
+  const btn = document.getElementById('sync-badge');
+  if(btn) btn.textContent='Syncing…';
+  await load();
+  if(curSvc && document.getElementById('pg-detail').classList.contains('show')){ renderHome(); openSvc(curSvc); }
+  else { renderHome(); }
+}
+
+function updateSyncBadge(){
+  const el=document.getElementById('sync-badge');
+  if(!el) return;
+  if(cloudOK){ el.textContent='Synced'; el.style.color='var(--ok)'; }
+  else { el.textContent='Offline (local only)'; el.style.color='var(--is)'; }
+}
 
 // ROUTING
 function goHome(){ show('pg-home'); hide('pg-detail'); hide('pg-admin'); renderHome(); }
@@ -1143,8 +1212,8 @@ function hide(id){document.getElementById(id).classList.remove('show');}
 function dl(name,content,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([content],{type}));a.download=name;a.click();}
 
 // INIT
-function init(){
-  load();
+async function init(){
+  await load();
   const p=new URLSearchParams(location.search);
   const svc=p.get('svc');
   if(svc&&S.services.find(s=>s.id===svc)) openSvc(svc);
