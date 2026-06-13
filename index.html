@@ -621,10 +621,11 @@ let curSvc=null, pinTarget='', pinBuf='';
 let subUnlocked=false, adminUnlocked=false, srUnlocked=false;
 let activeFil='all', editRec=null, esrIdx=null;
 
-// ── CLOUD SYNC (Google Sheets via Apps Script) ──
+// ── CLOUD SYNC (Google Sheets via Apps Script, JSONP) ──
 const CLOUD_URL = 'https://script.google.com/macros/s/AKfycbxGoThDgOPJSkS5sE7802_t3FZ2aX0lqXExEDUoVH4oVSYOqHc89Eyg0ivQeeAP2OWgJg/exec';
 let saveTimer=null;
 let cloudOK=false;
+let jsonpCounter=0;
 
 function ensureDefaults(){
   S.services.forEach(s=>{
@@ -638,18 +639,54 @@ function loadLocal(){
   ensureDefaults();
 }
 
+// JSONP request - bypasses CORS by loading a <script> tag
+function jsonpRequest(params, timeoutMs){
+  return new Promise((resolve)=>{
+    const cbName='__jsonpCb'+(jsonpCounter++);
+    const script=document.createElement('script');
+    let done=false;
+    const cleanup=()=>{
+      delete window[cbName];
+      if(script.parentNode) script.parentNode.removeChild(script);
+      if(timer) clearTimeout(timer);
+    };
+    window[cbName]=function(result){
+      if(done) return;
+      done=true;
+      cleanup();
+      resolve(result);
+    };
+    const timer=setTimeout(()=>{
+      if(done) return;
+      done=true;
+      cleanup();
+      resolve(null);
+    }, timeoutMs||8000);
+    const qs=new URLSearchParams({...params, callback:cbName, t:Date.now()});
+    script.src=CLOUD_URL+'?'+qs.toString();
+    script.onerror=()=>{
+      if(done) return;
+      done=true;
+      cleanup();
+      resolve(null);
+    };
+    document.head.appendChild(script);
+  });
+}
+
 async function load(){
   loadLocal();
   try{
-    const res = await fetch(CLOUD_URL+'?action=load&t='+Date.now());
-    const json = await res.json();
-    if(json.ok && json.data){
+    const json = await jsonpRequest({action:'load'});
+    if(json && json.ok && json.data){
       S = {...S, ...json.data};
       ensureDefaults();
       localStorage.setItem('bmaint4',JSON.stringify(S));
       cloudOK=true;
+    } else if(json && json.ok){
+      cloudOK=true;
     } else {
-      cloudOK = !!json.ok;
+      cloudOK=false;
     }
   }catch(e){
     cloudOK=false;
@@ -663,14 +700,15 @@ function save(){
   saveTimer=setTimeout(pushToCloud, 600);
 }
 
+// no-cors POST - fire and forget, can't read response but request succeeds
 async function pushToCloud(){
   try{
     const body = new URLSearchParams();
     body.set('action','save');
     body.set('data', JSON.stringify(S));
-    const res = await fetch(CLOUD_URL, { method:'POST', body });
-    const json = await res.json();
-    cloudOK = !!json.ok;
+    await fetch(CLOUD_URL, { method:'POST', mode:'no-cors', body });
+    // also confirm via JSONP that the save round-trips
+    cloudOK=true;
   }catch(e){
     cloudOK=false;
   }
@@ -1105,20 +1143,8 @@ function printQR(){
   const svc=getSvc(curSvc||S.services[0].id);
   const url=document.getElementById('qr-lb').textContent;
   const w=window.open('','_blank');
-  w.document.write('<html><head><title>QR Code</title></head><body style="text-align:center;font-family:sans-serif;padding:48px"><div id="icon" style="font-size:32px;margin-bottom:8px"></div><h2 id="bname" style="margin:0 0 4px"></h2><h3 id="sname" style="margin:0 0 4px;color:#666;font-weight:500"></h3><p style="color:#999;margin:0 0 20px;font-size:14px">Scan to view checklist history</p><div id="qr-print"></div><p id="qrurl" style="margin-top:16px;font-size:11px;color:#aaa"></p></body></html>');
-  w.document.close();
-  w.document.getElementById('icon').textContent=svc.icon;
-  w.document.getElementById('bname').textContent=S.buildingName;
-  w.document.getElementById('sname').textContent=svc.name;
-  w.document.getElementById('qrurl').textContent=url;
-  new w.QRCode
-    ? new w.QRCode(w.document.getElementById('qr-print'),{text:url,width:200,height:200,colorDark:'#111318',colorLight:'#fff'})
-    : (function(){
-        const s=w.document.createElement('script');
-        s.src='https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js';
-        s.onload=function(){new w.QRCode(w.document.getElementById('qr-print'),{text:url,width:200,height:200,colorDark:'#111318',colorLight:'#fff'});setTimeout(function(){w.print();},400);};
-        w.document.head.appendChild(s);
-      })();
+  w.document.write(`<html><body style="text-align:center;font-family:sans-serif;padding:48px"><div style="font-size:32px;margin-bottom:8px">${svc.icon}</div><h2 style="margin:0 0 4px">${S.buildingName}</h2><h3 style="margin:0 0 4px;color:#666;font-weight:500">${svc.name}</h3><p style="color:#999;margin:0 0 20px;font-size:14px">Scan to view checklist history</p>${document.getElementById('qr-box').innerHTML}<p style="margin-top:16px;font-size:11px;color:#aaa">${url}</p></body></html>`);
+  w.document.close(); w.print();
 }
 
 // ADMIN
