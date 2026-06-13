@@ -621,11 +621,12 @@ let curSvc=null, pinTarget='', pinBuf='';
 let subUnlocked=false, adminUnlocked=false, srUnlocked=false;
 let activeFil='all', editRec=null, esrIdx=null;
 
-// ── CLOUD SYNC (Google Sheets via Apps Script, JSONP) ──
-const CLOUD_URL = 'https://script.google.com/macros/s/AKfycbxGoThDgOPJSkS5sE7802_t3FZ2aX0lqXExEDUoVH4oVSYOqHc89Eyg0ivQeeAP2OWgJg/exec';
+// ── CLOUD SYNC (JSONBin.io) ──
+const JSONBIN_ID = '6a2cd9adda38895dfeb8be42';
+const JSONBIN_KEY = '$2a$10$eHYyY88qYXpEPwjm3QugW.jSYntAp91o6oW09w4.fOyrOW22/.P7i';
+const JSONBIN_URL = 'https://api.jsonbin.io/v3/b/'+JSONBIN_ID;
 let saveTimer=null;
 let cloudOK=false;
-let jsonpCounter=0;
 
 function ensureDefaults(){
   S.services.forEach(s=>{
@@ -639,51 +640,21 @@ function loadLocal(){
   ensureDefaults();
 }
 
-// JSONP request - bypasses CORS by loading a <script> tag
-function jsonpRequest(params, timeoutMs){
-  return new Promise((resolve)=>{
-    const cbName='__jsonpCb'+(jsonpCounter++);
-    const script=document.createElement('script');
-    let done=false;
-    const cleanup=()=>{
-      delete window[cbName];
-      if(script.parentNode) script.parentNode.removeChild(script);
-      if(timer) clearTimeout(timer);
-    };
-    window[cbName]=function(result){
-      if(done) return;
-      done=true;
-      cleanup();
-      resolve(result);
-    };
-    const timer=setTimeout(()=>{
-      if(done) return;
-      done=true;
-      cleanup();
-      resolve(null);
-    }, timeoutMs||8000);
-    const qs=new URLSearchParams({...params, callback:cbName, t:Date.now()});
-    script.src=CLOUD_URL+'?'+qs.toString();
-    script.onerror=()=>{
-      if(done) return;
-      done=true;
-      cleanup();
-      resolve(null);
-    };
-    document.head.appendChild(script);
-  });
-}
-
 async function load(){
   loadLocal();
   try{
-    const json = await jsonpRequest({action:'load'});
-    if(json && json.ok && json.data){
-      S = {...S, ...json.data};
-      ensureDefaults();
-      localStorage.setItem('bmaint4',JSON.stringify(S));
-      cloudOK=true;
-    } else if(json && json.ok){
+    const res = await fetch(JSONBIN_URL+'/latest', {
+      headers: { 'X-Master-Key': JSONBIN_KEY, 'X-Bin-Meta': 'false' }
+    });
+    if(res.ok){
+      const json = await res.json();
+      // JSONBin returns the record directly when X-Bin-Meta is false
+      const data = json.record || json;
+      if(data && data.services){
+        S = {...S, ...data};
+        ensureDefaults();
+        localStorage.setItem('bmaint4',JSON.stringify(S));
+      }
       cloudOK=true;
     } else {
       cloudOK=false;
@@ -700,15 +671,17 @@ function save(){
   saveTimer=setTimeout(pushToCloud, 600);
 }
 
-// no-cors POST - fire and forget, can't read response but request succeeds
 async function pushToCloud(){
   try{
-    const body = new URLSearchParams();
-    body.set('action','save');
-    body.set('data', JSON.stringify(S));
-    await fetch(CLOUD_URL, { method:'POST', mode:'no-cors', body });
-    // also confirm via JSONP that the save round-trips
-    cloudOK=true;
+    const res = await fetch(JSONBIN_URL, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Master-Key': JSONBIN_KEY
+      },
+      body: JSON.stringify(S)
+    });
+    cloudOK = res.ok;
   }catch(e){
     cloudOK=false;
   }
