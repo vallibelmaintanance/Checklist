@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Connection Test</title>
+<style>
+body{font-family:sans-serif;padding:20px;background:#f0f2f5;}
+#result{background:#fff;border:1px solid #ddd;border-radius:8px;padding:16px;margin-top:16px;font-size:14px;white-space:pre-wrap;word-break:break-all;}
+.ok{color:green;font-weight:bold;}
+.fail{color:red;font-weight:bold;}
+button{padding:10px 20px;font-size:16px;border-radius:6px;border:1px solid #ccc;background:#1a56db;color:#fff;cursor:pointer;}
+</style>
+</head>
+<body>
+<h2>Apps Script Connection Test</h2>
+<p>This tests the exact same JSONP method the maintenance site uses.</p>
+<button onclick="runTest()">Run Test</button>
+<div id="result">Click the button to test...</div>
+
+<script>
+const CLOUD_URL = 'https://script.google.com/macros/s/AKfycbxGoThDgOPJSkS5sE7802_t3FZ2aX0lqXExEDUoVH4oVSYOqHc89Eyg0ivQeeAP2OWgJg/exec';
+let jsonpCounter=0;
+
+function jsonpRequest(params, timeoutMs){
+  return new Promise((resolve)=>{
+    const cbName='__jsonpCb'+(jsonpCounter++);
+    const script=document.createElement('script');
+    let done=false;
+    const cleanup=()=>{
+      delete window[cbName];
+      if(script.parentNode) script.parentNode.removeChild(script);
+      if(timer) clearTimeout(timer);
+    };
+    window[cbName]=function(result){
+      if(done) return;
+      done=true;
+      cleanup();
+      resolve({success:true, data:result});
+    };
+    const timer=setTimeout(()=>{
+      if(done) return;
+      done=true;
+      cleanup();
+      resolve({success:false, error:'TIMEOUT - no response after '+(timeoutMs||8000)+'ms'});
+    }, timeoutMs||8000);
+    const qs=new URLSearchParams({...params, callback:cbName, t:Date.now()});
+    script.src=CLOUD_URL+'?'+qs.toString();
+    script.onerror=()=>{
+      if(done) return;
+      done=true;
+      cleanup();
+      resolve({success:false, error:'SCRIPT LOAD ERROR - failed to load script tag'});
+    };
+    document.head.appendChild(script);
+  });
+}
+
+async function runTest(){
+  const el=document.getElementById('result');
+  el.textContent='Testing... please wait up to 8 seconds';
+  el.className='';
+
+  const out=[];
+  out.push('URL: '+CLOUD_URL);
+  out.push('User Agent: '+navigator.userAgent);
+  out.push('');
+
+  const result = await jsonpRequest({action:'load'});
+  if(result.success){
+    out.push('<span class="ok">SUCCESS - JSONP working!</span>');
+    out.push('Response: '+JSON.stringify(result.data));
+  } else {
+    out.push('<span class="fail">FAILED</span>');
+    out.push('Error: '+result.error);
+  }
+
+  el.innerHTML=out.join('\n');
+}
+</script>
+</body>
+</html>
