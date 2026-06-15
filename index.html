@@ -481,11 +481,12 @@ textarea.fi{resize:vertical;min-height:70px;}
 
     <div class="card"><div class="adm-sec">
       <h3>Data Management</h3>
+      <div id="backup-due-banner" style="display:none;border:1px solid;border-radius:var(--rs);padding:10px 14px;font-size:13px;margin-bottom:12px;"></div>
       <div style="background:var(--ac2);border-radius:var(--rs);padding:10px 14px;font-size:13px;color:var(--ac);margin-bottom:14px;">
-        Auto-backup runs every month and downloads a JSON file to this device. Database auto-clears every 2 months after backup (records only — settings and checklists are kept).
+        Backup only runs when you (admin) open this panel. Click <strong>Backup Now</strong> — a save dialog lets you choose the exact folder on your PC. Database auto-clears every 2 months after backup.
       </div>
       <div class="exp-r">
-        <button class="btn" onclick="manualBackup()"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Backup Now</button>
+        <button class="btn btn-p" onclick="manualBackup()"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Backup Now</button>
         <button class="btn" onclick="expCSV()"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Export CSV</button>
         <button class="btn" onclick="document.getElementById('imp').click()"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Restore JSON</button>
         <input type="file" id="imp" accept=".json" style="display:none" onchange="impJSON(event)">
@@ -728,7 +729,6 @@ async function load(){
     cloudOK=false;
   }
   updateSyncBadge();
-  checkAutoBackupAndClear();
 }
 
 function save(){
@@ -766,41 +766,96 @@ function updateSyncBadge(){
   else { el.textContent='Offline (local only)'; el.style.color='var(--is)'; }
 }
 
-// ── AUTO BACKUP & CLEAR ──
+// ── BACKUP & CLEAR (Admin only) ──
+// Called only after admin PIN is verified — never runs for regular visitors.
+
 function checkAutoBackupAndClear(){
+  // Only runs when admin opens the panel.
+  // Check if a backup is due this month or a clear is due.
   const now=new Date();
   const monthKey=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
   const lastBackup=localStorage.getItem('lastBackupMonth');
-  if(lastBackup===monthKey) return;
-  setTimeout(()=>{
-    const totalRecs=S.services.reduce((sum,s)=>sum+allRecs(s.id).length+allSRecs(s.id).length,0);
-    if(totalRecs===0) return;
-    const shouldClear=shouldClearThisMonth();
-    const msg=shouldClear
-      ?'Auto-Backup: Monthly backup time!\n\nThis month is also the 2-month database clear.\n\n1. A backup file will be downloaded.\n2. All inspection & service records will be cleared from the cloud (settings and checklists are kept).\n\nProceed?'
-      :'Auto-Backup: Monthly backup time! A JSON file will be downloaded to your device.\n\nProceed?';
-    if(confirm(msg)){
-      doAutoBackup(monthKey);
-      if(shouldClear) doAutoClear();
-    }
-  },3000);
+  const backupDue = lastBackup !== monthKey;
+  const clearDue = shouldClearThisMonth();
+
+  const totalRecs=S.services.reduce((sum,s)=>sum+allRecs(s.id).length+allSRecs(s.id).length,0);
+  if(totalRecs===0 && !clearDue) return; // nothing to back up
+
+  // Show a non-intrusive banner inside admin panel instead of a popup
+  const banner = document.getElementById('backup-due-banner');
+  if(!banner) return;
+  if(backupDue){
+    banner.style.display='block';
+    banner.innerHTML = clearDue
+      ? '<strong>⚠️ Monthly backup + 2-month clear due.</strong> Download the backup first, then clear records. Use the buttons below.'
+      : '<strong>📅 Monthly backup due.</strong> Click "Backup Now" below to save the backup file to your PC.';
+    banner.style.background='#fef3c7';
+    banner.style.color='#92400e';
+    banner.style.borderColor='#fbbf24';
+  } else if(clearDue){
+    banner.style.display='block';
+    banner.innerHTML='<strong>🗑️ 2-month database clear due.</strong> Click "Clear Records" below (backup will be saved automatically first).';
+    banner.style.background='#fee2e2';
+    banner.style.color='#991b1b';
+    banner.style.borderColor='#fca5a5';
+  }
 }
+
 function shouldClearThisMonth(){
   const lastClear=localStorage.getItem('lastClearMonth');
   if(!lastClear) return false;
   const now=new Date();
   const [ly,lm]=lastClear.split('-').map(Number);
-  const monthsDiff=(now.getFullYear()-ly)*12+(now.getMonth()+1-lm);
-  return monthsDiff>=2;
+  return (now.getFullYear()-ly)*12+(now.getMonth()+1-lm)>=2;
 }
-function doAutoBackup(monthKey){
+
+// Save backup file — uses File System Access API if available (lets admin
+// pick save location on PC). Falls back to standard download if not supported.
+async function manualBackup(){
   const now=new Date();
   const stamp=now.toISOString().split('T')[0];
   const filename='maintenance_backup_'+stamp+'.json';
-  dl(filename,JSON.stringify(S,null,2),'application/json');
+  const content=JSON.stringify(S,null,2);
+
+  // File System Access API — Chrome/Edge on desktop lets user pick folder
+  if(window.showSaveFilePicker){
+    try{
+      const handle = await window.showSaveFilePicker({
+        suggestedName: filename,
+        types:[{description:'JSON Backup',accept:{'application/json':['.json']}}]
+      });
+      const writable = await handle.createWritable();
+      await writable.write(content);
+      await writable.close();
+      const monthKey=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+      localStorage.setItem('lastBackupMonth',monthKey);
+      showBackupStatus();
+      hideBanner();
+      showNotification('Backup saved: '+filename,'ok');
+      return;
+    }catch(e){
+      if(e.name==='AbortError') return; // user cancelled — do nothing
+      // fall through to standard download if API fails
+    }
+  }
+
+  // Fallback: standard download (browser decides location)
+  dl(filename,content,'application/json');
+  const monthKey=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
   localStorage.setItem('lastBackupMonth',monthKey);
-  showNotification('Monthly backup downloaded: '+filename,'ok');
+  showBackupStatus();
+  hideBanner();
+  showNotification('Backup downloaded: '+filename,'ok');
 }
+
+async function triggerManualClear(){
+  if(!confirm('Clear ALL inspection and service records?\n\nA backup will be saved to your PC first. Settings, PINs and checklist tasks are kept.\n\nProceed?')) return;
+  // Save backup first
+  await manualBackup();
+  // Then clear
+  setTimeout(async()=>{ await doAutoClear(); },800);
+}
+
 async function doAutoClear(){
   const cleared={...S};
   cleared.records={};
@@ -821,20 +876,16 @@ async function doAutoClear(){
   localStorage.setItem('lastClearMonth',now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0'));
   await pushToCloud();
   renderHome();
+  showBackupStatus();
+  hideBanner();
   showNotification('Database cleared. Records removed, settings preserved.','ok');
 }
-function manualBackup(){
-  const now=new Date();
-  const stamp=now.toISOString().split('T')[0];
-  dl('maintenance_backup_'+stamp+'.json',JSON.stringify(S,null,2),'application/json');
+
+function hideBanner(){
+  const b=document.getElementById('backup-due-banner');
+  if(b) b.style.display='none';
 }
-function triggerManualClear(){
-  if(!confirm('Clear ALL inspection and service records?\n\nA backup will be downloaded first. Settings, PINs and checklist tasks are kept.\n\nThis cannot be undone.')) return;
-  const now=new Date();
-  const stamp=now.toISOString().split('T')[0];
-  dl('maintenance_backup_before_clear_'+stamp+'.json',JSON.stringify(S,null,2),'application/json');
-  setTimeout(async()=>{ await doAutoClear(); },500);
-}
+
 function showBackupStatus(){
   const el=document.getElementById('backup-status');
   if(!el) return;
@@ -849,17 +900,19 @@ function showBackupStatus(){
   };
   el.innerHTML='Last backup: <strong>'+lastB+'</strong> &nbsp;|&nbsp; Last clear: <strong>'+lastC+'</strong> &nbsp;|&nbsp; Next clear due: <strong>'+nextClear()+'</strong>';
 }
+
 function showNotification(msg,type){
   let el=document.getElementById('global-notif');
   if(!el){
     el=document.createElement('div');
     el.id='global-notif';
-    el.style.cssText='position:fixed;top:70px;right:16px;z-index:999;padding:10px 16px;border-radius:8px;font-size:13px;font-weight:500;max-width:300px;box-shadow:0 4px 12px rgba(0,0,0,.15);';
+    el.style.cssText='position:fixed;top:70px;right:16px;z-index:999;padding:10px 16px;border-radius:8px;font-size:13px;font-weight:500;max-width:320px;box-shadow:0 4px 12px rgba(0,0,0,.15);border:1px solid transparent;';
     document.body.appendChild(el);
   }
   el.textContent=msg;
   el.style.background=type==='ok'?'#dcfce7':'#fee2e2';
   el.style.color=type==='ok'?'#166534':'#b91c1c';
+  el.style.borderColor=type==='ok'?'#86efac':'#fca5a5';
   el.style.display='block';
   setTimeout(()=>el.style.display='none',5000);
 }
