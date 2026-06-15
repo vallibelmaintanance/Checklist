@@ -209,6 +209,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .exp-r{display:flex;gap:8px;flex-wrap:wrap;}
 .svc-adm-box{border:1px solid var(--bdr);border-radius:var(--rs);padding:14px;margin-bottom:14px;}
 .svc-adm-hdr{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+.unit-adm-box{border:1px solid var(--sur2);border-radius:var(--rs);padding:0 10px;margin-bottom:8px;background:var(--sur);}
 
 .eir{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--sur2);}
 .eir:last-child{border:none;}
@@ -282,6 +283,8 @@ textarea.fi{resize:vertical;min-height:70px;}
       </button>
     </div>
   </div>
+
+  <div class="fr" id="unit-bar" style="display:none"></div>
 
   <div class="tabs">
     <div class="tab active" id="tab-h" onclick="dTab('history')">History</div>
@@ -617,7 +620,7 @@ let S = {
   records:{},
   serviceRecs:{}
 };
-let curSvc=null, pinTarget='', pinBuf='';
+let curSvc=null, curUnit=null, pinTarget='', pinBuf='';
 let subUnlocked=false, adminUnlocked=false, srUnlocked=false;
 let activeFil='all', editRec=null, esrIdx=null;
 
@@ -630,11 +633,68 @@ let cloudOK=false;
 
 function ensureDefaults(){
   S.services.forEach(s=>{
+    if(!s.units) s.units=[];
     if(!S.records[s.id]) S.records[s.id]=[];
     if(!S.serviceRecs[s.id]) S.serviceRecs[s.id]=[];
+    if(s.units.length){
+      if(Array.isArray(S.records[s.id])) S.records[s.id]={};
+      if(Array.isArray(S.serviceRecs[s.id])) S.serviceRecs[s.id]={};
+      s.units.forEach(u=>{
+        if(!S.records[s.id][u.id]) S.records[s.id][u.id]=[];
+        if(!S.serviceRecs[s.id][u.id]) S.serviceRecs[s.id][u.id]=[];
+        if(!u.tasks) u.tasks=JSON.parse(JSON.stringify(s.tasks||[]));
+      });
+    }
   });
 }
 
+// Get the records array for the current service/unit context
+function getRecs(sId,uId){
+  const s=getSvc(sId);
+  if(s.units&&s.units.length){
+    if(!uId) return [];
+    if(!S.records[sId]) S.records[sId]={};
+    if(!S.records[sId][uId]) S.records[sId][uId]=[];
+    return S.records[sId][uId];
+  }
+  if(!S.records[sId]) S.records[sId]=[];
+  return S.records[sId];
+}
+function getSRecsArr(sId,uId){
+  const s=getSvc(sId);
+  if(s.units&&s.units.length){
+    if(!uId) return [];
+    if(!S.serviceRecs[sId]) S.serviceRecs[sId]={};
+    if(!S.serviceRecs[sId][uId]) S.serviceRecs[sId][uId]=[];
+    return S.serviceRecs[sId][uId];
+  }
+  if(!S.serviceRecs[sId]) S.serviceRecs[sId]=[];
+  return S.serviceRecs[sId];
+}
+// Total records across all units (for home page counts)
+function allRecs(sId){
+  const s=getSvc(sId);
+  if(s.units&&s.units.length) return s.units.flatMap(u=>(S.records[sId]&&S.records[sId][u.id])||[]);
+  return S.records[sId]||[];
+}
+function allSRecs(sId){
+  const s=getSvc(sId);
+  if(s.units&&s.units.length) return s.units.flatMap(u=>(S.serviceRecs[sId]&&S.serviceRecs[sId][u.id])||[]);
+  return S.serviceRecs[sId]||[];
+}
+
+// Get the task list for a system/unit context. If a system has units,
+// each unit has its own independent task list (u.tasks). Otherwise svc.tasks.
+function getTasks(svc,uId){
+  if(svc.units&&svc.units.length){
+    const u=svc.units.find(x=>x.id===uId);
+    if(!u) return [];
+    if(!u.tasks) u.tasks=[];
+    return u.tasks;
+  }
+  if(!svc.tasks) svc.tasks=[];
+  return svc.tasks;
+}
 function loadLocal(){
   try{ const d=localStorage.getItem('bmaint4'); if(d) S={...S,...JSON.parse(d)}; }catch(e){}
   ensureDefaults();
@@ -692,7 +752,7 @@ async function refreshFromCloud(){
   const btn = document.getElementById('sync-badge');
   if(btn) btn.textContent='Syncing…';
   await load();
-  if(curSvc && document.getElementById('pg-detail').classList.contains('show')){ renderHome(); openSvc(curSvc); }
+  if(curSvc && document.getElementById('pg-detail').classList.contains('show')){ renderHome(); openSvc(curSvc,curUnit); }
   else { renderHome(); }
 }
 
@@ -708,14 +768,42 @@ function goHome(){ show('pg-home'); hide('pg-detail'); hide('pg-admin'); renderH
 function openAdmin(){ hide('pg-home'); hide('pg-detail'); show('pg-admin'); document.getElementById('adm-lkd').style.display=''; document.getElementById('adm-panel').style.display='none'; adminUnlocked=false; }
 function closeAdmin(){ goHome(); }
 
-function openSvc(id){
+function openSvc(id,uId){
   curSvc=id; subUnlocked=false; srUnlocked=false; activeFil='all';
   const s=getSvc(id);
+  curUnit = (s.units&&s.units.length) ? (uId||s.units[0].id) : null;
   hide('pg-home'); show('pg-detail');
   document.getElementById('dh-ic').textContent=s.icon;
   document.getElementById('dh-ic').style.background=s.color+'22';
   document.getElementById('dh-nm').textContent=s.name;
-  document.getElementById('dh-sb').textContent=(S.records[id]||[]).length+' inspection records';
+  renderUnitBar();
+  updateDhSb();
+  document.getElementById('sub-lkd').style.display='';
+  document.getElementById('sub-form').style.display='none';
+  document.getElementById('sr-locked').style.display='';
+  document.getElementById('sr-content').style.display='none';
+  dTab('history');
+}
+function updateDhSb(){
+  const s=getSvc(curSvc);
+  let txt=getRecs(curSvc,curUnit).length+' inspection records';
+  if(s.units&&s.units.length){
+    const u=s.units.find(u=>u.id===curUnit);
+    if(u) txt=u.name+' · '+txt;
+  }
+  document.getElementById('dh-sb').textContent=txt;
+}
+function renderUnitBar(){
+  const s=getSvc(curSvc);
+  const el=document.getElementById('unit-bar');
+  if(!s.units||!s.units.length){ el.style.display='none'; el.innerHTML=''; return; }
+  el.style.display='flex';
+  el.innerHTML=s.units.map(u=>`<div class="fb ${u.id===curUnit?'on':''}" onclick="switchUnit('${u.id}')">${u.name}</div>`).join('');
+}
+function switchUnit(uId){
+  if(uId===curUnit) return;
+  curUnit=uId; subUnlocked=false; srUnlocked=false; activeFil='all';
+  renderUnitBar(); updateDhSb();
   document.getElementById('sub-lkd').style.display='';
   document.getElementById('sub-form').style.display='none';
   document.getElementById('sr-locked').style.display='';
@@ -728,8 +816,8 @@ function renderHome(){
   document.getElementById('hdr-bn').textContent=S.buildingName;
   document.getElementById('home-bn').textContent=S.buildingName;
   document.getElementById('svc-grid').innerHTML=S.services.map(s=>{
-    const recs=S.records[s.id]||[];
-    const srecs=S.serviceRecs[s.id]||[];
+    const recs=allRecs(s.id);
+    const srecs=allSRecs(s.id);
     const last=recs.length?recs[recs.length-1]:null;
     const lastStr=last?fmtDate(last.date)+' · '+last.technician:'No checks yet';
     const issues=recs.filter(r=>r.items.some(i=>i.status==='issue')).length;
@@ -752,6 +840,7 @@ function renderHome(){
         <span class="sc-b ok">${recs.length} checks</span>
         ${issues?`<span class="sc-b is">${issues} issues</span>`:''}
         <span class="sc-b na">${srecs.length} services</span>
+        ${(s.units&&s.units.length)?`<span class="sc-b warn">${s.units.length} units</span>`:''}
       </div>
       ${svcBarHTML}
       <button class="sc-qr" onclick="event.stopPropagation();qrForSvc('${s.id}')">📲 Show QR code</button>
@@ -768,10 +857,15 @@ function nextSvcStatus(dateStr){
   return{label:'In '+diff+' days',cls:'ok'};
 }
 
-function qrForSvc(id){
+function qrForSvc(id,uId){
   const s=getSvc(id);
-  const url=location.href.split('?')[0].split('#')[0]+'?svc='+id;
-  document.getElementById('qr-t').textContent=s.icon+' '+s.name;
+  let url=location.href.split('?')[0].split('#')[0]+'?svc='+id;
+  let title=s.icon+' '+s.name;
+  if(uId){
+    const u=s.units&&s.units.find(x=>x.id===uId);
+    if(u){ url+='&unit='+uId; title+=' — '+u.name; }
+  }
+  document.getElementById('qr-t').textContent=title;
   document.getElementById('qr-lb').textContent=url;
   document.getElementById('qr-box').innerHTML='';
   new QRCode(document.getElementById('qr-box'),{text:url,width:200,height:200,colorDark:'#111318',colorLight:'#fff'});
@@ -792,7 +886,7 @@ function dTab(t){
 
 // STATS
 function renderStats(){
-  const recs=S.records[curSvc]||[];
+  const recs=getRecs(curSvc,curUnit);
   const now=new Date();
   const month=recs.filter(r=>{const d=new Date(r.date);return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();}).length;
   const week=recs.filter(r=>(now-new Date(r.date))/864e5<=7).length;
@@ -802,7 +896,7 @@ function renderStats(){
     <div class="stat"><div class="stat-n">${month}</div><div class="stat-l">This month</div></div>
     <div class="stat"><div class="stat-n">${week}</div><div class="stat-l">Last 7 days</div></div>
     <div class="stat"><div class="stat-n" style="color:${issues>0?'var(--is)':'var(--ok)'}">${issues}</div><div class="stat-l">With issues</div></div>`;
-  const techs=['all',...new Set((S.records[curSvc]||[]).map(r=>r.technician))];
+  const techs=['all',...new Set(getRecs(curSvc,curUnit).map(r=>r.technician))];
   document.getElementById('h-filter').innerHTML=techs.map(t=>`<div class="fb ${activeFil===t?'on':''}" onclick="setFil('${t}')">${t==='all'?'All':t}</div>`).join('');
 }
 function setFil(f){activeFil=f;renderStats();renderRecs();}
@@ -810,13 +904,13 @@ function setFil(f){activeFil=f;renderStats();renderRecs();}
 // INSPECTION RECORDS
 function renderRecs(){
   const q=(document.getElementById('h-search').value||'').toLowerCase();
-  let recs=[...(S.records[curSvc]||[])].reverse();
+  let recs=[...getRecs(curSvc,curUnit)].reverse();
   if(q) recs=recs.filter(r=>(r.technician||'').toLowerCase().includes(q)||(r.date||'').includes(q)||(r.remarks||'').toLowerCase().includes(q));
   if(activeFil!=='all') recs=recs.filter(r=>r.technician===activeFil);
   const el=document.getElementById('h-list');
   if(!recs.length){el.innerHTML=`<div class="empty"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg><p>No inspection records yet.</p></div>`;return;}
   el.innerHTML=recs.map(r=>{
-    const ri=findRI(curSvc,r.id);
+    const ri=findRI(curSvc,r.id,curUnit);
     const ok=r.items.filter(i=>i.status==='ok').length;
     const is=r.items.filter(i=>i.status==='issue').length;
     const na=r.items.filter(i=>i.status==='na').length;
@@ -836,7 +930,7 @@ function renderRecs(){
       <div class="rec-b">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
           <span style="font-size:12px;color:var(--tx2)">${r.submittedAt?new Date(r.submittedAt).toLocaleString():r.date}</span>
-          <button class="rb-eb" onclick="openEdit('${curSvc}',${ri})">✏️ Edit</button>
+          <button class="rb-eb" onclick="openEdit('${curSvc}',${ri},'${curUnit||''}')">✏️ Edit</button>
         </div>
         ${r.items.map(it=>`<div class="rb-it">
           <div class="rb-nm"><div>${it.n||it.name}<span style="display:inline-block;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:600;background:var(--ac2);color:var(--ac);margin-left:6px">${it.f||it.freq||''}</span></div>
@@ -852,7 +946,7 @@ function togRec(h){const b=h.nextElementSibling,c=h.querySelector('.chev');const
 // SERVICE RECORDS TAB
 function renderSRTab(){
   if(!srUnlocked) return;
-  const srecs=S.serviceRecs[curSvc]||[];
+  const srecs=getSRecsArr(curSvc,curUnit);
   const lastSR=srecs.length?srecs[srecs.length-1]:null;
   let statusHTML='';
   if(lastSR){
@@ -926,8 +1020,7 @@ function addSR(){
     cost:document.getElementById('sr-cost').value.trim(),
     ref:document.getElementById('sr-ref').value.trim(),
     createdAt:new Date().toISOString()};
-  if(!S.serviceRecs[curSvc]) S.serviceRecs[curSvc]=[];
-  S.serviceRecs[curSvc].push(rec);
+  getSRecsArr(curSvc,curUnit).push(rec);
   save();
   showAl('sr-ok','Service record saved ✓');
   ['sr-last-date','sr-next-date','sr-tech','sr-notes','sr-cost','sr-ref'].forEach(id=>document.getElementById(id).value='');
@@ -938,12 +1031,12 @@ function addSR(){
 
 function deleteSR(ri){
   if(!confirm('Delete this service record?')) return;
-  S.serviceRecs[curSvc].splice(ri,1); save(); renderSRTab(); renderHome();
+  getSRecsArr(curSvc,curUnit).splice(ri,1); save(); renderSRTab(); renderHome();
 }
 
 function openESR(ri){
   esrIdx=ri;
-  const sr=S.serviceRecs[curSvc][ri];
+  const sr=getSRecsArr(curSvc,curUnit)[ri];
   document.getElementById('esr-sub').textContent=fmtDate(sr.lastDate)+' · '+sr.tech;
   document.getElementById('esr-body').innerHTML=`
     <div class="fr2"><div class="fg"><label>Last Service Date</label><input class="fi" id="esr-ld" type="date" value="${sr.lastDate}" oninput="esrCalcNext()"></div>
@@ -965,7 +1058,7 @@ function esrCalcNext(){
   document.getElementById('esr-nd').value=calcNextDate(ld,m);
 }
 function saveESR(){
-  const sr=S.serviceRecs[curSvc][esrIdx];
+  const sr=getSRecsArr(curSvc,curUnit)[esrIdx];
   sr.lastDate=document.getElementById('esr-ld').value||sr.lastDate;
   sr.interval=parseInt(document.getElementById('esr-iv').value)||sr.interval;
   sr.nextDate=document.getElementById('esr-nd').value||sr.nextDate;
@@ -980,7 +1073,8 @@ function saveESR(){
 // CHECKLIST (public)
 function renderChecklist(){
   const svc=getSvc(curSvc);
-  const freqs=[...new Set(svc.tasks.map(t=>t.f))];
+  const tasks=getTasks(svc,curUnit);
+  const freqs=[...new Set(tasks.map(t=>t.f))];
   if(!freqs.length){
     document.getElementById('dt-cl-items').innerHTML=`<div class="empty"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg><p>No checklist tasks defined yet for this system.</p></div>`;
     return;
@@ -988,7 +1082,7 @@ function renderChecklist(){
   document.getElementById('dt-cl-items').innerHTML=freqs.map(freq=>`
     <div class="cl-section">
       <div class="cl-title">${freq} checks</div>
-      ${svc.tasks.filter(t=>t.f===freq).map(t=>`
+      ${tasks.filter(t=>t.f===freq).map(t=>`
         <div class="cl-item"><div class="cl-dot"></div><div class="cl-nm">${t.n}</div><span class="freq-b">${t.f}</span></div>`).join('')}
     </div>`).join('');
 }
@@ -996,14 +1090,15 @@ function renderChecklist(){
 // SUBMIT FORM
 function renderSubForm(){
   const svc=getSvc(curSvc);
+  const tasks=getTasks(svc,curUnit);
   document.getElementById('f-date').value=new Date().toISOString().split('T')[0];
-  if(!svc.tasks.length){
+  if(!tasks.length){
     document.getElementById('sub-items').innerHTML=`<div class="card"><div class="empty"><p>No checklist tasks defined for this system. Add tasks in Admin → Systems &amp; Tasks.</p></div></div>`;
     return;
   }
   document.getElementById('sub-items').innerHTML=`<div class="card">
     <div class="card-t"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/></svg>${svc.name} — Checklist</div>
-    ${svc.tasks.map((t,i)=>`<div class="ci">
+    ${tasks.map((t,i)=>`<div class="ci">
       <div class="ci-nm">${t.n}</div><div class="ci-fr">Frequency: ${t.f}</div>
       <div class="sr2">
         <button class="sb" onclick="setSt(this,'ok')" data-i="${i}">✓ OK</button>
@@ -1023,26 +1118,26 @@ function doSubmit(){
   const tech=document.getElementById('f-tech').value.trim(), date=document.getElementById('f-date').value;
   if(!tech||!date){showAl('al-er','Please enter your name and date.');return;}
   const svc=getSvc(curSvc);
-  const items=svc.tasks.map((t,i)=>{
+  const tasks=getTasks(svc,curUnit);
+  const items=tasks.map((t,i)=>{
     const btns=document.querySelectorAll(`.sr2 button[data-i="${i}"]`);
     let st=''; btns.forEach(b=>{if(b.dataset.status)st=b.dataset.status;});
     const ni=document.getElementById('cin'+i)?.querySelector('input');
     return{n:t.n,f:t.f,status:st,note:ni?ni.value.trim():''};
   });
-  if(!S.records[curSvc]) S.records[curSvc]=[];
-  S.records[curSvc].push({id:Date.now(),date,shift:document.getElementById('f-shift').value,technician:tech,remarks:document.getElementById('f-rem').value.trim(),items,submittedAt:new Date().toISOString()});
+  getRecs(curSvc,curUnit).push({id:Date.now(),date,shift:document.getElementById('f-shift').value,technician:tech,remarks:document.getElementById('f-rem').value.trim(),items,submittedAt:new Date().toISOString()});
   save();
   showAl('al-ok','Checklist submitted successfully ✓');
   document.getElementById('f-tech').value=''; document.getElementById('f-rem').value='';
-  document.getElementById('dh-sb').textContent=S.records[curSvc].length+' inspection records';
+  updateDhSb();
   renderSubForm();
 }
 function lockSub(){subUnlocked=false;document.getElementById('sub-lkd').style.display='';document.getElementById('sub-form').style.display='none';}
 
 // EDIT INSPECTION
-function openEdit(sId,ri){editRec={sId,ri};openPIN('edit');}
+function openEdit(sId,ri,uId){editRec={sId,ri,uId:uId||null};openPIN('edit');}
 function doOpenEdit(){
-  const r=S.records[editRec.sId][editRec.ri];
+  const r=getRecs(editRec.sId,editRec.uId)[editRec.ri];
   document.getElementById('edit-sub').textContent=fmtDate(r.date)+' · '+r.technician;
   document.getElementById('edit-body').innerHTML=`
     <div style="margin-bottom:12px">
@@ -1063,7 +1158,7 @@ function doOpenEdit(){
 }
 function eSt(btn,i,st){btn.closest('.ei-sb').querySelectorAll('.esb').forEach(b=>b.classList.remove('s-ok','s-is','s-na'));btn.classList.add('s-'+st);document.getElementById('en'+i)?.classList.toggle('show',st==='issue');}
 function saveEdit(){
-  const r=S.records[editRec.sId][editRec.ri];
+  const r=getRecs(editRec.sId,editRec.uId)[editRec.ri];
   r.technician=document.getElementById('e-tech').value.trim()||r.technician;
   r.remarks=document.getElementById('e-rem').value.trim();
   r.items.forEach((it,i)=>{
@@ -1111,7 +1206,7 @@ function chkPIN(){
 }
 
 // QR
-function showQR(){qrForSvc(curSvc);}
+function showQR(){qrForSvc(curSvc,curUnit);}
 function printQR(){
   const svc=getSvc(curSvc||S.services[0].id);
   const url=document.getElementById('qr-lb').textContent;
@@ -1139,15 +1234,20 @@ function changePIN(type){
   setTimeout(()=>msg.textContent='',2500);
 }
 
+let admExpUnit={}; // {svcId: unitId} currently expanded unit per service
+
 function renderAdmSvcs(){
-  document.getElementById('adm-svcs').innerHTML=S.services.map((svc,si)=>`
+  document.getElementById('adm-svcs').innerHTML=S.services.map((svc,si)=>{
+    const hasUnits=svc.units&&svc.units.length;
+    return `
     <div class="svc-adm-box">
       <div class="svc-adm-hdr">
         <span style="font-size:18px">${svc.icon}</span>
         <strong style="font-size:14px;flex:1">${svc.name}</strong>
-        <span style="font-size:12px;color:var(--tx2);margin-right:8px">${svc.tasks.length} tasks</span>
+        ${!hasUnits?`<span style="font-size:12px;color:var(--tx2);margin-right:8px">${svc.tasks.length} tasks</span>`:''}
         <div class="ico-b del" onclick="delSystem(${si})" title="Delete system"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></div>
       </div>
+      ${!hasUnits?`
       ${svc.tasks.map((t,ti)=>`<div class="ter">
         <span>${t.n}</span>
         <span style="font-size:11px;color:var(--tx3);margin-right:6px">${t.f}</span>
@@ -1159,8 +1259,101 @@ function renderAdmSvcs(){
           <option>Daily</option><option>Weekly</option><option>Monthly</option><option>Quarterly</option>
         </select>
         <button class="btn btn-p" onclick="addTask(${si})" style="flex-shrink:0">+ Add</button>
+      </div>`:`<p style="font-size:12px;color:var(--tx2);margin-bottom:4px">This system uses per-unit checklists — expand a unit below to manage its tasks.</p>`}
+      <hr class="divider" style="margin:14px 0">
+      <p style="font-size:12px;font-weight:600;color:var(--tx2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Sub-categories / Units</p>
+      ${hasUnits?svc.units.map((u,ui)=>{
+        const open=admExpUnit[svc.id]===u.id;
+        const tasks=u.tasks||[];
+        return `<div class="unit-adm-box">
+          <div class="ter" style="cursor:pointer" onclick="toggleAdmUnit('${svc.id}','${u.id}')">
+            <span>${open?'▾':'▸'} ${u.name}</span>
+            <span style="font-size:11px;color:var(--tx3);margin-right:6px">${tasks.length} tasks · ${(getRecs(svc.id,u.id)||[]).length} records</span>
+            <div class="ico-b del" onclick="event.stopPropagation();delUnit(${si},${ui})" title="Delete unit"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
+          </div>
+          ${open?`<div style="padding:0 0 4px 14px">
+            ${tasks.map((t,ti)=>`<div class="ter">
+              <span>${t.n}</span>
+              <span style="font-size:11px;color:var(--tx3);margin-right:6px">${t.f}</span>
+              <div class="ico-b del" onclick="rmUnitTask('${svc.id}','${u.id}',${ti})" title="Delete task"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
+            </div>`).join('')||`<p style="font-size:12px;color:var(--tx2);margin:6px 0">No checklist tasks yet for ${u.name}.</p>`}
+            <div class="add-r" style="padding-left:0;margin-top:10px">
+              <input type="text" id="nut_${svc.id}_${u.id}" placeholder="New task name for ${u.name}">
+              <select class="fi" id="nuf_${svc.id}_${u.id}" style="width:110px;padding:7px 6px;font-size:12px;flex-shrink:0;">
+                <option>Daily</option><option>Weekly</option><option>Monthly</option><option>Quarterly</option>
+              </select>
+              <button class="btn btn-p" onclick="addUnitTask('${svc.id}','${u.id}')" style="flex-shrink:0">+ Add</button>
+            </div>
+          </div>`:''}
+        </div>`;
+      }).join(''):`<p style="font-size:12px;color:var(--tx2);margin-bottom:8px">No sub-categories. Add units like "Chiller 01", "Chiller 02" to track each unit separately, each with its own checklist. Leave empty to manage this system as a single unit.</p>`}
+      <div class="add-r" style="padding-left:0;margin-top:10px">
+        <input type="text" id="nu${si}" placeholder="e.g. ${svc.name} 0${(svc.units?.length||0)+1}">
+        <button class="btn btn-p" onclick="addUnit(${si})" style="flex-shrink:0">+ Add Unit</button>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
+}
+
+function toggleAdmUnit(svcId,uId){
+  admExpUnit[svcId]=(admExpUnit[svcId]===uId)?null:uId;
+  renderAdmSvcs();
+}
+
+function addUnitTask(svcId,uId){
+  const v=document.getElementById(`nut_${svcId}_${uId}`).value.trim();
+  const f=document.getElementById(`nuf_${svcId}_${uId}`).value;
+  if(!v) return;
+  const svc=getSvc(svcId);
+  const u=svc.units.find(x=>x.id===uId);
+  if(!u.tasks) u.tasks=[];
+  u.tasks.push({n:v,f});
+  save(); renderAdmSvcs();
+  if(curSvc===svcId&&curUnit===uId){renderChecklist();renderSubForm();}
+}
+
+function rmUnitTask(svcId,uId,ti){
+  if(!confirm('Delete this task? This only removes it from the checklist template.')) return;
+  const svc=getSvc(svcId);
+  const u=svc.units.find(x=>x.id===uId);
+  u.tasks.splice(ti,1);
+  save(); renderAdmSvcs();
+  if(curSvc===svcId&&curUnit===uId){renderChecklist();renderSubForm();}
+}
+
+function addUnit(si){
+  const inp=document.getElementById('nu'+si);
+  const name=inp.value.trim();
+  if(!name) return;
+  const svc=S.services[si];
+  if(!svc.units) svc.units=[];
+  if(svc.units.find(u=>u.name.toLowerCase()===name.toLowerCase())) return;
+  const id=name.toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'')+'_'+Date.now();
+  svc.units.push({id,name,tasks:JSON.parse(JSON.stringify(svc.tasks||[]))});
+  if(!S.records[svc.id]||Array.isArray(S.records[svc.id])) S.records[svc.id]={};
+  if(!S.serviceRecs[svc.id]||Array.isArray(S.serviceRecs[svc.id])) S.serviceRecs[svc.id]={};
+  S.records[svc.id][id]=[]; S.serviceRecs[svc.id][id]=[];
+  inp.value='';
+  save(); renderAdmSvcs(); renderHome();
+  if(curSvc===svc.id) { curUnit=curUnit||id; renderUnitBar(); }
+}
+
+function delUnit(si,ui){
+  const svc=S.services[si];
+  const u=svc.units[ui];
+  if(!confirm(`Delete "${u.name}"?\n\nThis will also delete all inspection records and service records for this unit. This cannot be undone.`)) return;
+  svc.units.splice(ui,1);
+  if(S.records[svc.id]) delete S.records[svc.id][u.id];
+  if(S.serviceRecs[svc.id]) delete S.serviceRecs[svc.id][u.id];
+  if(admExpUnit[svc.id]===u.id) admExpUnit[svc.id]=null;
+  if(!svc.units.length){
+    S.records[svc.id]=[]; S.serviceRecs[svc.id]=[];
+  }
+  save(); renderAdmSvcs(); renderHome();
+  if(curSvc===svc.id){
+    curUnit = svc.units.length ? (svc.units.find(x=>x.id===curUnit)?curUnit:svc.units[0].id) : null;
+    renderUnitBar(); updateDhSb();
+  }
 }
 
 function addSystem(){
@@ -1171,7 +1364,7 @@ function addSystem(){
   if(!name){msg.style.color='var(--is)';msg.textContent='Please enter a system name.';return;}
   if(S.services.find(s=>s.name.toLowerCase()===name.toLowerCase())){msg.style.color='var(--is)';msg.textContent='A system with this name already exists.';return;}
   const id=name.toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'')+'_'+Date.now();
-  S.services.push({id,name,icon,color,tasks:[]});
+  S.services.push({id,name,icon,color,tasks:[],units:[]});
   S.records[id]=[]; S.serviceRecs[id]=[];
   save(); renderAdmSvcs(); renderHome();
   document.getElementById('ns-name').value=''; document.getElementById('ns-icon').value='';
@@ -1200,8 +1393,16 @@ function rmTask(si,ti){
 function expCSV(){
   const rows=[['Type','Service','Date/Last Date','Next Date','Interval','Technician/Company','Shift/Type','Status/Notes','Cost','Ref','Submitted At']];
   S.services.forEach(s=>{
-    (S.records[s.id]||[]).forEach(r=>r.items.forEach(it=>rows.push(['Inspection',s.name,r.date,'','',r.technician,r.shift,it.status,it.note||'',r.remarks||'',r.submittedAt||''])));
-    (S.serviceRecs[s.id]||[]).forEach(sr=>rows.push(['Service Record',s.name,sr.lastDate,sr.nextDate,sr.interval+'m',sr.tech,'',sr.type+'. '+sr.notes,sr.cost||'',sr.ref||'',sr.createdAt||'']));
+    if(s.units&&s.units.length){
+      s.units.forEach(u=>{
+        const label=s.name+' - '+u.name;
+        (getRecs(s.id,u.id)||[]).forEach(r=>r.items.forEach(it=>rows.push(['Inspection',label,r.date,'','',r.technician,r.shift,it.status,it.note||'',r.remarks||'',r.submittedAt||''])));
+        (getSRecsArr(s.id,u.id)||[]).forEach(sr=>rows.push(['Service Record',label,sr.lastDate,sr.nextDate,sr.interval+'m',sr.tech,'',sr.type+'. '+sr.notes,sr.cost||'',sr.ref||'',sr.createdAt||'']));
+      });
+    } else {
+      (S.records[s.id]||[]).forEach(r=>r.items.forEach(it=>rows.push(['Inspection',s.name,r.date,'','',r.technician,r.shift,it.status,it.note||'',r.remarks||'',r.submittedAt||''])));
+      (S.serviceRecs[s.id]||[]).forEach(sr=>rows.push(['Service Record',s.name,sr.lastDate,sr.nextDate,sr.interval+'m',sr.tech,'',sr.type+'. '+sr.notes,sr.cost||'',sr.ref||'',sr.createdAt||'']));
+    }
   });
   dl('maintenance_export.csv',rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n'),'text/csv');
 }
@@ -1215,7 +1416,7 @@ function impJSON(e){
 
 // UTILS
 function getSvc(id){return S.services.find(s=>s.id===id)||S.services[0];}
-function findRI(sId,recId){return(S.records[sId]||[]).findIndex(r=>r.id===recId);}
+function findRI(sId,recId,uId){return getRecs(sId,uId).findIndex(r=>r.id===recId);}
 function fmtDate(d){if(!d)return'';return new Date(d+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});}
 function showAl(id,msg){const el=document.getElementById(id);el.textContent=msg;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),3500);}
 function show(id){document.getElementById(id).classList.add('show');}
@@ -1227,7 +1428,8 @@ async function init(){
   await load();
   const p=new URLSearchParams(location.search);
   const svc=p.get('svc');
-  if(svc&&S.services.find(s=>s.id===svc)) openSvc(svc);
+  const unit=p.get('unit');
+  if(svc&&S.services.find(s=>s.id===svc)) openSvc(svc,unit);
   else goHome();
 }
 init();
