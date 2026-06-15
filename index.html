@@ -450,6 +450,12 @@ textarea.fi{resize:vertical;min-height:70px;}
 
     <div class="card"><div class="adm-sec">
       <h3>Systems &amp; Tasks</h3>
+      <datalist id="extra-presets">
+        <option value="Temperature">
+        <option value="Pressure">
+        <option value="Voltage">
+        <option value="Ampere">
+      </datalist>
       <div id="adm-svcs"></div>
       <hr class="divider">
       <p style="font-size:13px;font-weight:600;margin-bottom:10px;">Add New System</p>
@@ -934,7 +940,8 @@ function renderRecs(){
         </div>
         ${r.items.map(it=>`<div class="rb-it">
           <div class="rb-nm"><div>${it.n||it.name}<span style="display:inline-block;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:600;background:var(--ac2);color:var(--ac);margin-left:6px">${it.f||it.freq||''}</span></div>
-          ${it.note?`<div class="rb-nt">📝 ${it.note}</div>`:''}</div>
+          ${it.note?`<div class="rb-nt">📝 ${it.note}</div>`:''}
+          ${it.extraLabel&&it.extra?`<div class="rb-nt">📊 ${it.extraLabel}: ${it.extra}</div>`:''}</div>
           <span class="badge ${it.status==='ok'?'b-ok':it.status==='issue'?'b-is':'b-na'}">${it.status==='ok'?'OK':it.status==='issue'?'Issue':it.status==='na'?'N/A':'—'}</span>
         </div>`).join('')}
       </div>
@@ -1106,6 +1113,7 @@ function renderSubForm(){
         <button class="sb" onclick="setSt(this,'na')" data-i="${i}">— N/A</button>
       </div>
       <div class="ci-nt" id="cin${i}"><input type="text" placeholder="Describe issue…"></div>
+      ${t.extra?`<div class="fg" style="margin-top:8px"><label>${t.extra}</label><input class="fi" type="text" id="cex${i}" placeholder="Enter ${t.extra.toLowerCase()} reading…"></div>`:''}
     </div>`).join('')}
   </div>`;
 }
@@ -1123,7 +1131,12 @@ function doSubmit(){
     const btns=document.querySelectorAll(`.sr2 button[data-i="${i}"]`);
     let st=''; btns.forEach(b=>{if(b.dataset.status)st=b.dataset.status;});
     const ni=document.getElementById('cin'+i)?.querySelector('input');
-    return{n:t.n,f:t.f,status:st,note:ni?ni.value.trim():''};
+    const item={n:t.n,f:t.f,status:st,note:ni?ni.value.trim():''};
+    if(t.extra){
+      const ei=document.getElementById('cex'+i);
+      item.extraLabel=t.extra; item.extra=ei?ei.value.trim():'';
+    }
+    return item;
   });
   getRecs(curSvc,curUnit).push({id:Date.now(),date,shift:document.getElementById('f-shift').value,technician:tech,remarks:document.getElementById('f-rem').value.trim(),items,submittedAt:new Date().toISOString()});
   save();
@@ -1152,7 +1165,8 @@ function doOpenEdit(){
           <button class="esb ${it.status==='issue'?'s-is':''}" onclick="eSt(this,${i},'issue')">Issue</button>
           <button class="esb ${it.status==='na'?'s-na':''}" onclick="eSt(this,${i},'na')">N/A</button>
         </div></div>
-        <div class="ci-nt ${it.status==='issue'?'show':''}" id="en${i}"><input type="text" value="${it.note||''}" placeholder="Issue note…"></div>`).join('')}
+        <div class="ci-nt ${it.status==='issue'?'show':''}" id="en${i}"><input type="text" value="${it.note||''}" placeholder="Issue note…"></div>
+        ${it.extraLabel?`<div class="fg" style="margin-top:8px"><label>${it.extraLabel}</label><input class="fi" type="text" id="eex${i}" value="${it.extra||''}" placeholder="Enter ${it.extraLabel.toLowerCase()} reading…"></div>`:''}`).join('')}
     </div>`;
   document.getElementById('edit-ov').classList.remove('hidden');
 }
@@ -1167,6 +1181,7 @@ function saveEdit(){
     const a=row.querySelector('.s-ok,.s-is,.s-na');
     if(a) it.status=a.classList.contains('s-ok')?'ok':a.classList.contains('s-is')?'issue':'na';
     const ni=document.getElementById('en'+i)?.querySelector('input'); if(ni) it.note=ni.value.trim();
+    const ei=document.getElementById('eex'+i); if(ei) it.extra=ei.value.trim();
   });
   save(); closeEdit(); renderRecs(); renderStats();
 }
@@ -1249,7 +1264,7 @@ function renderAdmSvcs(){
       </div>
       ${!hasUnits?`
       ${svc.tasks.map((t,ti)=>`<div class="ter">
-        <span>${t.n}</span>
+        <span>${t.n}${t.extra?` <span style="font-size:10px;padding:2px 6px;border-radius:10px;background:var(--ac2);color:var(--ac)">+ ${t.extra}</span>`:''}</span>
         <span style="font-size:11px;color:var(--tx3);margin-right:6px">${t.f}</span>
         <div class="ico-b del" onclick="rmTask(${si},${ti})" title="Delete task"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
       </div>`).join('')}
@@ -1258,6 +1273,7 @@ function renderAdmSvcs(){
         <select class="fi" id="nf${si}" style="width:110px;padding:7px 6px;font-size:12px;flex-shrink:0;">
           <option>Daily</option><option>Weekly</option><option>Monthly</option><option>Quarterly</option>
         </select>
+        <input type="text" id="ne${si}" list="extra-presets" placeholder="Reading field (optional)" style="width:160px;flex-shrink:0;">
         <button class="btn btn-p" onclick="addTask(${si})" style="flex-shrink:0">+ Add</button>
       </div>`:`<p style="font-size:12px;color:var(--tx2);margin-bottom:4px">This system uses per-unit checklists — expand a unit below to manage its tasks.</p>`}
       <hr class="divider" style="margin:14px 0">
@@ -1273,7 +1289,7 @@ function renderAdmSvcs(){
           </div>
           ${open?`<div style="padding:0 0 4px 14px">
             ${tasks.map((t,ti)=>`<div class="ter">
-              <span>${t.n}</span>
+              <span>${t.n}${t.extra?` <span style="font-size:10px;padding:2px 6px;border-radius:10px;background:var(--ac2);color:var(--ac)">+ ${t.extra}</span>`:''}</span>
               <span style="font-size:11px;color:var(--tx3);margin-right:6px">${t.f}</span>
               <div class="ico-b del" onclick="rmUnitTask('${svc.id}','${u.id}',${ti})" title="Delete task"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
             </div>`).join('')||`<p style="font-size:12px;color:var(--tx2);margin:6px 0">No checklist tasks yet for ${u.name}.</p>`}
@@ -1282,6 +1298,7 @@ function renderAdmSvcs(){
               <select class="fi" id="nuf_${svc.id}_${u.id}" style="width:110px;padding:7px 6px;font-size:12px;flex-shrink:0;">
                 <option>Daily</option><option>Weekly</option><option>Monthly</option><option>Quarterly</option>
               </select>
+              <input type="text" id="nue_${svc.id}_${u.id}" list="extra-presets" placeholder="Reading field (optional)" style="width:160px;flex-shrink:0;">
               <button class="btn btn-p" onclick="addUnitTask('${svc.id}','${u.id}')" style="flex-shrink:0">+ Add</button>
             </div>
           </div>`:''}
@@ -1303,11 +1320,13 @@ function toggleAdmUnit(svcId,uId){
 function addUnitTask(svcId,uId){
   const v=document.getElementById(`nut_${svcId}_${uId}`).value.trim();
   const f=document.getElementById(`nuf_${svcId}_${uId}`).value;
+  const ex=document.getElementById(`nue_${svcId}_${uId}`).value;
   if(!v) return;
   const svc=getSvc(svcId);
   const u=svc.units.find(x=>x.id===uId);
   if(!u.tasks) u.tasks=[];
-  u.tasks.push({n:v,f});
+  const task={n:v,f}; if(ex) task.extra=ex;
+  u.tasks.push(task);
   save(); renderAdmSvcs();
   if(curSvc===svcId&&curUnit===uId){renderChecklist();renderSubForm();}
 }
@@ -1382,7 +1401,10 @@ function delSystem(si){
 
 function addTask(si){
   const v=document.getElementById('nt'+si).value.trim(), f=document.getElementById('nf'+si).value;
-  if(!v) return; S.services[si].tasks.push({n:v,f}); save(); renderAdmSvcs();
+  const ex=document.getElementById('ne'+si).value;
+  if(!v) return;
+  const task={n:v,f}; if(ex) task.extra=ex;
+  S.services[si].tasks.push(task); save(); renderAdmSvcs();
 }
 function rmTask(si,ti){
   if(!confirm('Delete this task? This only removes it from the checklist template.')) return;
@@ -1391,17 +1413,17 @@ function rmTask(si,ti){
 
 // EXPORT
 function expCSV(){
-  const rows=[['Type','Service','Date/Last Date','Next Date','Interval','Technician/Company','Shift/Type','Status/Notes','Cost','Ref','Submitted At']];
+  const rows=[['Type','Service','Date/Last Date','Next Date','Interval','Technician/Company','Shift/Type','Status/Notes','Reading','Cost','Ref','Submitted At']];
   S.services.forEach(s=>{
     if(s.units&&s.units.length){
       s.units.forEach(u=>{
         const label=s.name+' - '+u.name;
-        (getRecs(s.id,u.id)||[]).forEach(r=>r.items.forEach(it=>rows.push(['Inspection',label,r.date,'','',r.technician,r.shift,it.status,it.note||'',r.remarks||'',r.submittedAt||''])));
-        (getSRecsArr(s.id,u.id)||[]).forEach(sr=>rows.push(['Service Record',label,sr.lastDate,sr.nextDate,sr.interval+'m',sr.tech,'',sr.type+'. '+sr.notes,sr.cost||'',sr.ref||'',sr.createdAt||'']));
+        (getRecs(s.id,u.id)||[]).forEach(r=>r.items.forEach(it=>rows.push(['Inspection',label,r.date,'','',r.technician,r.shift,it.status,it.note||'',(it.extraLabel&&it.extra)?(it.extraLabel+': '+it.extra):'',r.remarks||'',r.submittedAt||''])));
+        (getSRecsArr(s.id,u.id)||[]).forEach(sr=>rows.push(['Service Record',label,sr.lastDate,sr.nextDate,sr.interval+'m',sr.tech,'',sr.type+'. '+sr.notes,'',sr.cost||'',sr.ref||'',sr.createdAt||'']));
       });
     } else {
-      (S.records[s.id]||[]).forEach(r=>r.items.forEach(it=>rows.push(['Inspection',s.name,r.date,'','',r.technician,r.shift,it.status,it.note||'',r.remarks||'',r.submittedAt||''])));
-      (S.serviceRecs[s.id]||[]).forEach(sr=>rows.push(['Service Record',s.name,sr.lastDate,sr.nextDate,sr.interval+'m',sr.tech,'',sr.type+'. '+sr.notes,sr.cost||'',sr.ref||'',sr.createdAt||'']));
+      (S.records[s.id]||[]).forEach(r=>r.items.forEach(it=>rows.push(['Inspection',s.name,r.date,'','',r.technician,r.shift,it.status,it.note||'',(it.extraLabel&&it.extra)?(it.extraLabel+': '+it.extra):'',r.remarks||'',r.submittedAt||''])));
+      (S.serviceRecs[s.id]||[]).forEach(sr=>rows.push(['Service Record',s.name,sr.lastDate,sr.nextDate,sr.interval+'m',sr.tech,'',sr.type+'. '+sr.notes,'',sr.cost||'',sr.ref||'',sr.createdAt||'']));
     }
   });
   dl('maintenance_export.csv',rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n'),'text/csv');
