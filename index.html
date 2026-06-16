@@ -228,6 +228,13 @@ textarea.fi{resize:vertical;min-height:70px;}
 </head>
 <body>
 
+<!-- Loading overlay shown while fetching Firebase data -->
+<div id="loading-overlay" style="position:fixed;inset:0;background:#f0f2f5;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;">
+  <div style="width:40px;height:40px;border:3px solid #e4e6ea;border-top-color:#1a56db;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
+  <div style="font-size:14px;color:#5c6370;font-family:-apple-system,sans-serif;">Loading latest data…</div>
+</div>
+<style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+
 <header class="app-hdr">
   <div class="hdr-in">
     <div class="logo">
@@ -711,22 +718,35 @@ function loadLocal(){
 }
 
 async function load(){
-  loadLocal();
+  // Show a loading state immediately — don't render stale local data as "current"
+  // Only use local as fallback if Firebase is unreachable
   try{
-    const res = await fetch(FB_URL);
+    // cache:'no-store' forces browser to ALWAYS hit Firebase, never use HTTP cache
+    // t= param is extra cache-buster in case server ignores no-store
+    const res = await fetch(FB_URL + '?t=' + Date.now(), {
+      cache: 'no-store'
+    });
     if(res.ok){
       const data = await res.json();
       if(data && data.services){
+        // Firebase has data — use it as the truth, ignore local cache
         S = {...S, ...data};
         ensureDefaults();
-        localStorage.setItem('bmaint4',JSON.stringify(S));
+        localStorage.setItem('bmaint4', JSON.stringify(S));
+      } else {
+        // Firebase is empty (new setup) — use local defaults
+        loadLocal();
       }
-      cloudOK=true;
+      cloudOK = true;
     } else {
-      cloudOK=false;
+      // Firebase error — fall back to local cache
+      loadLocal();
+      cloudOK = false;
     }
-  }catch(e){
-    cloudOK=false;
+  } catch(e){
+    // Network error — fall back to local cache so site still works offline
+    loadLocal();
+    cloudOK = false;
   }
   updateSyncBadge();
 }
@@ -752,11 +772,22 @@ async function pushToCloud(){
 }
 
 async function refreshFromCloud(){
-  const btn = document.getElementById('sync-badge');
-  if(btn) btn.textContent='Syncing…';
+  const badge = document.getElementById('sync-badge');
+  if(badge){ badge.textContent='Syncing…'; badge.style.color='var(--tx2)'; }
   await load();
-  if(curSvc && document.getElementById('pg-detail').classList.contains('show')){ renderHome(); openSvc(curSvc,curUnit); }
-  else { renderHome(); }
+  // Re-render whatever page is currently visible
+  if(document.getElementById('pg-detail').classList.contains('show') && curSvc){
+    renderHome();
+    // Re-open current service view and tab to show fresh data
+    const svc = getSvc(curSvc);
+    document.getElementById('dh-nm').textContent = svc.name;
+    document.getElementById('dh-sb').textContent = allRecs(curSvc).length + ' inspection records';
+    renderStats();
+    renderRecs();
+    if(srUnlocked) renderSRTab();
+  } else {
+    renderHome();
+  }
 }
 
 function updateSyncBadge(){
@@ -1596,6 +1627,9 @@ function dl(name,content,type){const a=document.createElement('a');a.href=URL.cr
 // INIT
 async function init(){
   await load();
+  // Hide loading overlay — Firebase fetch complete
+  const overlay = document.getElementById('loading-overlay');
+  if(overlay) overlay.style.display = 'none';
   const p=new URLSearchParams(location.search);
   const svc=p.get('svc');
   const unit=p.get('unit');
