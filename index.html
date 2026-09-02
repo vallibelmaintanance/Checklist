@@ -434,14 +434,15 @@ textarea.fi{resize:vertical;min-height:70px;}
     </div></div>
 
     <div class="card"><div class="adm-sec">
-      <h3>Technician PIN</h3>
-      <p style="font-size:13px;color:var(--tx2);margin-bottom:12px">Used by technicians to submit checklists and service records.</p>
-      <div class="fr2">
-        <div class="fg"><label>New PIN (4 digits)</label><input class="fi" id="tp-n" type="password" inputmode="numeric" maxlength="4" placeholder="••••"></div>
-        <div class="fg"><label>Confirm PIN</label><input class="fi" id="tp-c" type="password" inputmode="numeric" maxlength="4" placeholder="••••"></div>
+      <h3>Technicians</h3>
+      <p style="font-size:13px;color:var(--tx2);margin-bottom:12px">Each technician logs in with their own name and personal 4-digit PIN. Untick "Active" to disable a login without deleting their history.</p>
+      <div id="adm-techs"></div>
+      <div class="add-r" style="margin-top:10px">
+        <input type="text" id="nt-name" placeholder="Technician name">
+        <input type="text" id="nt-pin" maxlength="4" inputmode="numeric" placeholder="4-digit PIN" style="max-width:110px;flex-shrink:0;">
+        <button class="btn btn-p" onclick="addTech()" style="flex-shrink:0">+ Add Technician</button>
       </div>
-      <div id="tp-msg" style="font-size:13px;min-height:18px;margin-bottom:8px;"></div>
-      <button class="btn btn-p" onclick="changePIN('tech')">Update Technician PIN</button>
+      <div id="nt-msg" style="font-size:13px;min-height:18px;margin-top:6px;"></div>
     </div></div>
 
     <div class="card"><div class="adm-sec">
@@ -634,12 +635,13 @@ const DEFAULTS = [
 // STATE
 let S = {
   techPin:'1234', adminPin:'9999',
+  technicians:[],
   buildingName:'Building Maintenance',
   services: JSON.parse(JSON.stringify(DEFAULTS)),
   records:{},
   serviceRecs:{}
 };
-let curSvc=null, curUnit=null, pinTarget='', pinBuf='';
+let curSvc=null, curUnit=null, pinTarget='', pinBuf='', curTech=null;
 let subUnlocked=false, adminUnlocked=false, srUnlocked=false;
 let activeFil='all', editRec=null, esrIdx=null;
 
@@ -649,6 +651,11 @@ let saveTimer=null;
 let cloudOK=false;
 
 function ensureDefaults(){
+  if(!Array.isArray(S.technicians)) S.technicians=[];
+  if(!S.technicians.length){
+    // Migrate old shared technician PIN into an individual account so existing logins keep working
+    S.technicians.push({id:Date.now(),name:'Technician',pin:S.techPin||'1234',active:true});
+  }
   S.services.forEach(s=>{
     if(!s.units) s.units=[];
     if(!S.records[s.id]) S.records[s.id]=[];
@@ -954,7 +961,7 @@ function openAdmin(){ hide('pg-home'); hide('pg-detail'); show('pg-admin'); docu
 function closeAdmin(){ goHome(); }
 
 function openSvc(id,uId){
-  curSvc=id; subUnlocked=false; srUnlocked=false; activeFil='all';
+  curSvc=id; subUnlocked=false; srUnlocked=false; curTech=null; activeFil='all';
   const s=getSvc(id);
   curUnit = (s.units&&s.units.length) ? (uId||s.units[0].id) : null;
   hide('pg-home'); show('pg-detail');
@@ -987,7 +994,7 @@ function renderUnitBar(){
 }
 function switchUnit(uId){
   if(uId===curUnit) return;
-  curUnit=uId; subUnlocked=false; srUnlocked=false; activeFil='all';
+  curUnit=uId; subUnlocked=false; srUnlocked=false; curTech=null; activeFil='all';
   renderUnitBar(); updateDhSb();
   document.getElementById('sub-lkd').style.display='';
   document.getElementById('sub-form').style.display='none';
@@ -1278,6 +1285,10 @@ function renderSubForm(){
   const svc=getSvc(curSvc);
   const tasks=getTasks(svc,curUnit);
   document.getElementById('f-date').value=new Date().toISOString().split('T')[0];
+  const ftech=document.getElementById('f-tech');
+  ftech.value=curTech?curTech.name:'';
+  ftech.readOnly=!!curTech;
+  ftech.style.background=curTech?'var(--sur2)':'';
   if(!tasks.length){
     document.getElementById('sub-items').innerHTML=`<div class="card"><div class="empty"><p>No checklist tasks defined for this system. Add tasks in Admin → Systems &amp; Tasks.</p></div></div>`;
     return;
@@ -1317,14 +1328,14 @@ function doSubmit(){
     }
     return item;
   });
-  getRecs(curSvc,curUnit).push({id:Date.now(),date,shift:document.getElementById('f-shift').value,technician:tech,remarks:document.getElementById('f-rem').value.trim(),items,submittedAt:new Date().toISOString()});
+  getRecs(curSvc,curUnit).push({id:Date.now(),date,shift:document.getElementById('f-shift').value,technician:tech,technicianId:curTech?curTech.id:null,remarks:document.getElementById('f-rem').value.trim(),items,submittedAt:new Date().toISOString()});
   save();
   showAl('al-ok','Checklist submitted successfully ✓');
-  document.getElementById('f-tech').value=''; document.getElementById('f-rem').value='';
+  document.getElementById('f-rem').value='';
   updateDhSb();
   renderSubForm();
 }
-function lockSub(){subUnlocked=false;document.getElementById('sub-lkd').style.display='';document.getElementById('sub-form').style.display='none';}
+function lockSub(){subUnlocked=false;curTech=null;document.getElementById('sub-lkd').style.display='';document.getElementById('sub-form').style.display='none';}
 
 // EDIT INSPECTION
 function openEdit(sId,ri,uId){editRec={sId,ri,uId:uId||null};openPIN('edit');}
@@ -1371,7 +1382,7 @@ function openPIN(target){
   pinTarget=target; pinBuf='';
   document.getElementById('pin-er').textContent='';
   const titles={submit:'Technician PIN',admin:'Admin PIN',edit:'Technician PIN',service:'Technician PIN'};
-  const subs={submit:'Enter your technician PIN.',admin:'Enter your admin PIN.',edit:'Enter PIN to edit this record.',service:'Enter your technician PIN to access service records.'};
+  const subs={submit:'Enter your personal 4-digit PIN.',admin:'Enter your admin PIN.',edit:'Enter your personal PIN to edit this record.',service:'Enter your personal PIN to access service records.'};
   document.getElementById('pin-title').textContent=titles[target]||'Enter PIN';
   document.getElementById('pin-sub').textContent=subs[target]||'Enter your PIN.';
   updDots(); document.getElementById('pin-ov').classList.remove('hidden');
@@ -1386,11 +1397,21 @@ function pk(k){
 }
 function updDots(){for(let i=0;i<4;i++) document.getElementById('pd'+i).classList.toggle('on',i<pinBuf.length);}
 function chkPIN(){
-  const correct=pinTarget==='admin'?S.adminPin:S.techPin;
-  if(pinBuf===correct){
+  if(pinTarget==='admin'){
+    if(pinBuf===S.adminPin){
+      closePIN();
+      adminUnlocked=true;document.getElementById('adm-lkd').style.display='none';document.getElementById('adm-panel').style.display='block';document.getElementById('adm-bn').value=S.buildingName;renderAdmSvcs();renderAdmTechs();showBackupStatus();
+    } else {
+      document.getElementById('pin-er').textContent='Incorrect PIN. Try again.';
+      pinBuf=''; updDots();
+    }
+    return;
+  }
+  const tech=(S.technicians||[]).find(t=>t.active!==false && t.pin===pinBuf);
+  if(tech){
+    curTech=tech;
     closePIN();
     if(pinTarget==='submit'){subUnlocked=true;document.getElementById('sub-lkd').style.display='none';document.getElementById('sub-form').style.display='block';renderSubForm();}
-    if(pinTarget==='admin'){adminUnlocked=true;document.getElementById('adm-lkd').style.display='none';document.getElementById('adm-panel').style.display='block';document.getElementById('adm-bn').value=S.buildingName;renderAdmSvcs();showBackupStatus();}
     if(pinTarget==='edit'){doOpenEdit();}
     if(pinTarget==='service'){srUnlocked=true;document.getElementById('sr-locked').style.display='none';document.getElementById('sr-content').style.display='block';renderSRTab();}
   } else {
@@ -1407,6 +1428,53 @@ function printQR(){
   const w=window.open('','_blank');
   w.document.write(`<html><body style="text-align:center;font-family:sans-serif;padding:48px"><div style="font-size:32px;margin-bottom:8px">${svc.icon}</div><h2 style="margin:0 0 4px">${S.buildingName}</h2><h3 style="margin:0 0 4px;color:#666;font-weight:500">${svc.name}</h3><p style="color:#999;margin:0 0 20px;font-size:14px">Scan to view checklist history</p>${document.getElementById('qr-box').innerHTML}<p style="margin-top:16px;font-size:11px;color:#aaa">${url}</p></body></html>`);
   w.document.close(); w.print();
+}
+
+// TECHNICIANS
+function renderAdmTechs(){
+  const list=S.technicians||[];
+  document.getElementById('adm-techs').innerHTML = list.length ? list.map((t,i)=>`
+    <div class="ter" style="flex-wrap:wrap">
+      <input class="fi" style="max-width:160px" value="${t.name}" onchange="updTech(${i},'name',this.value)">
+      <input class="fi" style="max-width:90px" maxlength="4" inputmode="numeric" value="${t.pin}" onchange="updTech(${i},'pin',this.value)">
+      <label style="font-size:12px;display:flex;align-items:center;gap:4px;white-space:nowrap;color:var(--tx2)">
+        <input type="checkbox" ${t.active!==false?'checked':''} onchange="updTech(${i},'active',this.checked)"> Active
+      </label>
+      <div class="ico-b del" onclick="rmTech(${i})" title="Remove technician"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></div>
+    </div>`).join('') : `<p style="font-size:12px;color:var(--tx2)">No technicians added yet — add one below.</p>`;
+}
+function updTech(i,field,val){
+  const t=(S.technicians||[])[i]; if(!t) return;
+  if(field==='pin'){
+    val=String(val).replace(/\D/g,'').slice(0,4);
+    if(val.length!==4){ alert('PIN must be exactly 4 digits.'); renderAdmTechs(); return; }
+    if(S.technicians.some((x,xi)=>xi!==i && x.active!==false && x.pin===val)){ alert('That PIN is already used by another active technician.'); renderAdmTechs(); return; }
+  }
+  if(field==='name'){
+    val=String(val).trim();
+    if(!val){ alert('Name cannot be empty.'); renderAdmTechs(); return; }
+  }
+  t[field]=val; save(); renderAdmTechs();
+}
+function rmTech(i){
+  const t=(S.technicians||[])[i]; if(!t) return;
+  if(!confirm(`Remove "${t.name}"? They will no longer be able to log in. Their past submissions stay in history.`)) return;
+  S.technicians.splice(i,1); save(); renderAdmTechs();
+}
+function addTech(){
+  const nameEl=document.getElementById('nt-name'), pinEl=document.getElementById('nt-pin'), msg=document.getElementById('nt-msg');
+  const name=nameEl.value.trim();
+  const pin=pinEl.value.replace(/\D/g,'').slice(0,4);
+  msg.style.color='var(--is)';
+  if(!name){ msg.textContent='Enter a technician name.'; return; }
+  if(pin.length!==4){ msg.textContent='PIN must be exactly 4 digits.'; return; }
+  if((S.technicians||[]).some(t=>t.active!==false && t.pin===pin)){ msg.textContent='That PIN is already used by another active technician.'; return; }
+  if(!S.technicians) S.technicians=[];
+  S.technicians.push({id:Date.now(),name,pin,active:true});
+  save();
+  nameEl.value=''; pinEl.value='';
+  msg.style.color='var(--ok)'; msg.textContent='Technician added ✓';
+  renderAdmTechs();
 }
 
 // ADMIN
