@@ -1,0 +1,1714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Building Maintenance System</title>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<style>
+:root{
+  --bg:#f0f2f5;--sur:#fff;--sur2:#f7f8fa;--bdr:#e4e6ea;
+  --tx:#111318;--tx2:#5c6370;--tx3:#a0a6b0;
+  --ac:#1a56db;--ac2:#ebf0fd;
+  --ok:#166534;--okb:#dcfce7;--okr:#86efac;
+  --is:#b91c1c;--isb:#fee2e2;--isr:#fca5a5;
+  --na:#374151;--nab:#f3f4f6;--nar:#d1d5db;
+  --warn:#b45309;--warnb:#fef3c7;
+  --r:10px;--rs:6px;--sh:0 1px 4px rgba(0,0,0,0.08);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--tx);font-size:15px;line-height:1.5;min-height:100vh;}
+
+.app-hdr{background:var(--sur);border-bottom:1px solid var(--bdr);position:sticky;top:0;z-index:200;}
+.hdr-in{max-width:980px;margin:0 auto;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.logo{display:flex;align-items:center;gap:10px;}
+.logo-ic{width:36px;height:36px;background:var(--ac);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.logo-ic svg{width:18px;height:18px;stroke:white;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+.logo-t{font-size:15px;font-weight:700;}
+.logo-s{font-size:11px;color:var(--tx2);}
+
+.page{display:none;max-width:980px;margin:0 auto;padding:20px 16px 100px;}
+.page.show{display:block;}
+.pg-t{font-size:18px;font-weight:700;margin-bottom:4px;}
+.pg-s{font-size:13px;color:var(--tx2);margin-bottom:20px;}
+
+.svc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;}
+.svc-card{background:var(--sur);border:1px solid var(--bdr);border-radius:var(--r);padding:18px;cursor:pointer;transition:box-shadow .15s,border-color .15s;box-shadow:var(--sh);}
+.svc-card:hover{box-shadow:0 4px 14px rgba(0,0,0,.1);border-color:#c5c9d4;}
+.sc-top{display:flex;align-items:center;gap:12px;margin-bottom:10px;}
+.sc-ic{width:42px;height:42px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:20px;}
+.sc-nm{font-size:15px;font-weight:600;}
+.sc-ls{font-size:12px;color:var(--tx2);margin-top:1px;}
+.sc-stats{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
+.sc-b{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;}
+.sc-b.ok{background:var(--okb);color:var(--ok);}
+.sc-b.is{background:var(--isb);color:var(--is);}
+.sc-b.na{background:var(--nab);color:var(--na);}
+.sc-b.warn{background:var(--warnb);color:var(--warn);}
+.sc-svc-bar{border-top:1px solid var(--bdr);padding-top:10px;margin-top:4px;font-size:12px;color:var(--tx2);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px;}
+.sc-svc-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;}
+.sc-qr{margin-top:10px;padding:6px 0;width:100%;border:1px dashed #c5c9d4;border-radius:var(--rs);background:transparent;font-size:12px;color:var(--tx2);cursor:pointer;transition:background .15s;}
+.sc-qr:hover{background:var(--sur2);}
+
+.back{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--tx2);cursor:pointer;margin-bottom:16px;padding:5px 0;}
+.back:hover{color:var(--tx);}
+.back svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+.dh{background:var(--sur);border:1px solid var(--bdr);border-radius:var(--r);padding:18px 20px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;box-shadow:var(--sh);}
+.dh-l{display:flex;align-items:center;gap:14px;}
+.dh-ic{width:46px;height:46px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
+.dh-nm{font-size:17px;font-weight:700;}
+.dh-sb{font-size:12px;color:var(--tx2);margin-top:2px;}
+.dh-ac{display:flex;gap:8px;flex-wrap:wrap;}
+
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:var(--rs);border:1px solid var(--bdr);background:var(--sur);color:var(--tx);font-size:13px;cursor:pointer;font-weight:500;transition:background .15s;white-space:nowrap;}
+.btn:hover{background:var(--sur2);}
+.btn-p{background:var(--ac);color:#fff;border-color:var(--ac);}
+.btn-p:hover{background:#1447c0;}
+.btn-d{background:#fff0f0;color:var(--is);border-color:#fca5a5;}
+.btn-d:hover{background:#fee2e2;}
+.btn svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+
+.tabs{display:flex;border-bottom:1px solid var(--bdr);margin-bottom:18px;background:var(--sur);border-radius:var(--r) var(--r) 0 0;padding:0 4px;overflow-x:auto;}
+.tab{padding:11px 14px;font-size:13px;font-weight:500;color:var(--tx2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .15s;white-space:nowrap;}
+.tab.active{color:var(--ac);border-bottom-color:var(--ac);}
+
+.sr-card{background:var(--sur);border:1px solid var(--bdr);border-radius:var(--r);padding:20px;margin-bottom:14px;box-shadow:var(--sh);}
+.sr-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;margin-bottom:16px;}
+.sr-field{display:flex;flex-direction:column;gap:3px;}
+.sr-lbl{font-size:11px;font-weight:600;color:var(--tx2);text-transform:uppercase;letter-spacing:.04em;}
+.sr-val{font-size:15px;font-weight:600;}
+.sr-val.ok{color:var(--ok);}
+.sr-val.warn{color:var(--warn);}
+.sr-val.is{color:var(--is);}
+.sr-progress{height:6px;background:var(--bdr);border-radius:3px;margin-top:4px;overflow:hidden;}
+.sr-bar{height:100%;border-radius:3px;transition:width .3s;}
+.next-badge{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:600;}
+.next-badge.ok{background:var(--okb);color:var(--ok);}
+.next-badge.warn{background:var(--warnb);color:var(--warn);}
+.next-badge.is{background:var(--isb);color:var(--is);}
+.svc-hist-item{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--sur2);}
+.svc-hist-item:last-child{border:none;}
+.svc-hist-dot{width:10px;height:10px;border-radius:50%;background:var(--ac);flex-shrink:0;margin-top:4px;}
+.svc-hist-info{flex:1;}
+.svc-hist-date{font-size:13px;font-weight:600;}
+.svc-hist-detail{font-size:12px;color:var(--tx2);margin-top:2px;}
+.svc-edit-btns{display:flex;gap:6px;}
+
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;}
+@media(max-width:560px){.stats-row{grid-template-columns:repeat(2,1fr);}}
+.stat{background:var(--sur);border:1px solid var(--bdr);border-radius:var(--r);padding:14px 16px;text-align:center;box-shadow:var(--sh);}
+.stat-n{font-size:24px;font-weight:700;letter-spacing:-.03em;}
+.stat-l{font-size:11px;color:var(--tx2);text-transform:uppercase;letter-spacing:.04em;margin-top:2px;}
+
+.sw{position:relative;margin-bottom:12px;}
+.sw input{width:100%;padding:9px 12px 9px 35px;border:1px solid var(--bdr);border-radius:var(--rs);font-size:14px;background:var(--sur);}
+.sw input:focus{outline:none;border-color:var(--ac);}
+.sw svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:15px;height:15px;stroke:var(--tx3);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+.fr{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;}
+.fb{padding:4px 11px;border-radius:20px;border:1px solid var(--bdr);background:var(--sur);font-size:12px;cursor:pointer;color:var(--tx2);font-weight:500;transition:all .15s;}
+.fb.on{background:var(--ac);color:#fff;border-color:var(--ac);}
+
+.rec{background:var(--sur);border:1px solid var(--bdr);border-radius:var(--r);margin-bottom:9px;overflow:hidden;box-shadow:var(--sh);}
+.rec-h{padding:13px 16px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.rec-h:hover{background:var(--sur2);}
+.rec-m{flex:1;min-width:0;}
+.rec-d{font-size:14px;font-weight:600;}
+.rec-i{font-size:12px;color:var(--tx2);margin-top:2px;}
+.rec-r{display:flex;gap:6px;align-items:center;flex-shrink:0;flex-wrap:wrap;}
+.badge{display:inline-flex;align-items:center;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600;}
+.b-ok{background:var(--okb);color:var(--ok);}
+.b-is{background:var(--isb);color:var(--is);}
+.b-na{background:var(--nab);color:var(--na);}
+.chev{width:16px;height:16px;stroke:var(--tx3);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform .2s;flex-shrink:0;}
+.chev.open{transform:rotate(180deg);}
+.rec-b{display:none;border-top:1px solid var(--bdr);padding:14px 16px;}
+.rec-b.open{display:block;}
+.rb-it{display:flex;align-items:flex-start;gap:10px;padding:6px 0;border-bottom:1px solid var(--sur2);}
+.rb-it:last-child{border:none;}
+.rb-nm{flex:1;font-size:13px;}
+.rb-nt{font-size:11px;color:var(--tx2);margin-top:2px;}
+.rb-eb{font-size:11px;padding:3px 8px;border-radius:20px;border:1px solid var(--bdr);background:transparent;cursor:pointer;color:var(--tx2);}
+.rb-eb:hover{background:var(--sur2);}
+.empty{text-align:center;padding:48px 20px;color:var(--tx2);}
+.empty svg{width:38px;height:38px;stroke:var(--bdr);fill:none;stroke-width:1.5;stroke-linecap:round;margin:0 auto 12px;display:block;}
+
+.cl-section{background:var(--sur);border:1px solid var(--bdr);border-radius:var(--r);padding:18px 20px;margin-bottom:12px;box-shadow:var(--sh);}
+.cl-title{font-size:13px;font-weight:600;color:var(--tx2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--bdr);}
+.cl-item{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--sur2);}
+.cl-item:last-child{border:none;}
+.cl-dot{width:8px;height:8px;border-radius:50%;background:var(--bdr);flex-shrink:0;}
+.cl-nm{font-size:13px;flex:1;}
+.freq-b{display:inline-block;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:600;background:var(--ac2);color:var(--ac);}
+
+.card{background:var(--sur);border:1px solid var(--bdr);border-radius:var(--r);padding:18px 20px;margin-bottom:14px;box-shadow:var(--sh);}
+.card-t{font-size:14px;font-weight:600;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.card-t svg{width:15px;height:15px;stroke:var(--ac);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+.fr2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.fr3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+@media(max-width:540px){.fr2,.fr3{grid-template-columns:1fr;}}
+.fg{margin-bottom:12px;}
+.fg label{font-size:12px;font-weight:500;display:block;margin-bottom:5px;color:var(--tx2);}
+.fi{width:100%;padding:9px 11px;border:1px solid var(--bdr);border-radius:var(--rs);font-size:14px;background:var(--sur);color:var(--tx);}
+.fi:focus{outline:none;border-color:var(--ac);box-shadow:0 0 0 3px rgba(26,86,219,.1);}
+.ci{background:var(--sur2);border:1px solid var(--bdr);border-radius:var(--rs);padding:12px 14px;margin-bottom:8px;}
+.ci-nm{font-size:14px;font-weight:500;margin-bottom:4px;}
+.ci-fr{font-size:11px;color:var(--tx2);margin-bottom:9px;}
+.sr2{display:flex;gap:6px;flex-wrap:wrap;}
+.sb{padding:5px 12px;border-radius:20px;border:1.5px solid var(--bdr);background:transparent;font-size:12px;font-weight:600;cursor:pointer;color:var(--tx2);transition:all .15s;}
+.sb.s-ok{background:var(--okb);color:var(--ok);border-color:var(--ok);}
+.sb.s-is{background:var(--isb);color:var(--is);border-color:var(--is);}
+.sb.s-na{background:var(--nab);color:var(--na);border-color:#9ca3af;}
+.ci-nt{margin-top:8px;display:none;}
+.ci-nt.show{display:block;}
+.ci-nt input{width:100%;padding:6px 10px;border:1px solid var(--bdr);border-radius:var(--rs);font-size:13px;}
+.ci-nt input:focus{outline:none;border-color:var(--ac);}
+.sub-bar{position:sticky;bottom:0;background:var(--sur);border-top:1px solid var(--bdr);padding:11px 16px;margin:0 -16px;display:flex;gap:10px;}
+.sub-bar .btn{flex:1;justify-content:center;}
+.alert{padding:10px 14px;border-radius:var(--rs);font-size:13px;margin-bottom:12px;display:none;}
+.alert.show{display:block;}
+.a-ok{background:var(--okb);color:var(--ok);border:1px solid var(--okr);}
+.a-er{background:var(--isb);color:var(--is);border:1px solid var(--isr);}
+
+.lkd{background:var(--sur);border:1px solid var(--bdr);border-radius:var(--r);padding:36px 24px;text-align:center;box-shadow:var(--sh);}
+.lkd svg{width:32px;height:32px;stroke:var(--tx3);fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;margin:0 auto 12px;display:block;}
+.lkd h3{font-size:15px;font-weight:600;margin-bottom:6px;}
+.lkd p{font-size:13px;color:var(--tx2);margin-bottom:16px;}
+
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:600;display:flex;align-items:center;justify-content:center;padding:20px;}
+.ov.hidden{display:none;}
+.modal{background:var(--sur);border-radius:var(--r);padding:26px 22px;width:100%;max-width:320px;box-shadow:0 12px 40px rgba(0,0,0,.2);}
+.modal h3{font-size:16px;font-weight:600;margin-bottom:4px;}
+.modal-s{font-size:13px;color:var(--tx2);margin-bottom:18px;}
+.pin-dots{display:flex;justify-content:center;gap:10px;margin-bottom:18px;}
+.pd{width:14px;height:14px;border-radius:50%;border:2px solid var(--bdr);transition:background .15s,border-color .15s;}
+.pd.on{background:var(--ac);border-color:var(--ac);}
+.kpad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.kk{padding:13px;text-align:center;border-radius:var(--rs);border:1px solid var(--bdr);background:var(--sur2);font-size:18px;font-weight:600;cursor:pointer;transition:background .1s;user-select:none;}
+.kk:active{background:var(--bdr);}
+.kk.sm{font-size:13px;font-weight:500;}
+.pin-er{color:#dc2626;font-size:12px;text-align:center;margin-top:8px;min-height:18px;}
+.mf{display:flex;gap:8px;margin-top:14px;}
+.mf .btn{flex:1;justify-content:center;}
+
+.qr-w{text-align:center;}
+#qr-box{display:inline-block;padding:14px;background:#fff;border:1px solid var(--bdr);border-radius:var(--rs);margin:14px 0;}
+.qr-lb{font-size:11px;color:var(--tx2);word-break:break-all;margin-bottom:10px;}
+
+.adm-sec h3{font-size:14px;font-weight:600;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--bdr);}
+.ter{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--sur2);}
+.ter:last-child{border:none;}
+.ter span{flex:1;font-size:13px;color:var(--tx2);}
+.ter strong{font-size:14px;}
+.ico-b{width:28px;height:28px;border-radius:var(--rs);border:1px solid var(--bdr);background:var(--sur);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.ico-b:hover{background:var(--sur2);}
+.ico-b.del:hover{background:var(--isb);border-color:var(--isr);}
+.ico-b svg{width:13px;height:13px;stroke:var(--tx2);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+.add-r{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;}
+.add-r input{flex:1;min-width:120px;padding:7px 10px;border:1px solid var(--bdr);border-radius:var(--rs);font-size:13px;}
+.add-r input:focus{outline:none;border-color:var(--ac);}
+.exp-r{display:flex;gap:8px;flex-wrap:wrap;}
+.svc-adm-box{border:1px solid var(--bdr);border-radius:var(--rs);padding:14px;margin-bottom:14px;}
+.svc-adm-hdr{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+.unit-adm-box{border:1px solid var(--sur2);border-radius:var(--rs);padding:0 10px;margin-bottom:8px;background:var(--sur);}
+
+.eir{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--sur2);}
+.eir:last-child{border:none;}
+.ei-nm{flex:1;font-size:13px;}
+.ei-sb{display:flex;gap:4px;}
+.esb{padding:4px 9px;border-radius:20px;border:1.5px solid var(--bdr);background:transparent;font-size:11px;font-weight:600;cursor:pointer;color:var(--tx2);}
+.esb.s-ok{background:var(--okb);color:var(--ok);border-color:var(--ok);}
+.esb.s-is{background:var(--isb);color:var(--is);border-color:var(--is);}
+.esb.s-na{background:var(--nab);color:var(--na);border-color:#9ca3af;}
+
+.info-bar{background:#eff6ff;border:1px solid #bfdbfe;border-radius:var(--rs);padding:10px 14px;font-size:13px;color:#1e40af;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+.info-bar svg{width:15px;height:15px;stroke:#1e40af;fill:none;stroke-width:2;flex-shrink:0;}
+.divider{border:none;border-top:1px solid var(--bdr);margin:16px 0;}
+textarea.fi{resize:vertical;min-height:70px;}
+</style>
+</head>
+<body>
+
+<!-- Loading overlay shown while fetching Firebase data -->
+<div id="loading-overlay" style="position:fixed;inset:0;background:#f0f2f5;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;">
+  <div style="width:40px;height:40px;border:3px solid #e4e6ea;border-top-color:#1a56db;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
+  <div style="font-size:14px;color:#5c6370;font-family:-apple-system,sans-serif;">Loading latest data…</div>
+</div>
+<style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+
+<header class="app-hdr">
+  <div class="hdr-in">
+    <div class="logo">
+      <div class="logo-ic">
+        <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+      </div>
+      <div>
+        <div class="logo-t" id="hdr-bn">Building Maintenance</div>
+        <div class="logo-s">Maintenance System</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span id="sync-badge" style="font-size:11px;color:var(--tx2);font-weight:500;">Loading…</span>
+      <button class="btn" onclick="refreshFromCloud()" title="Refresh shared data">
+        <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+        Refresh
+      </button>
+      <a class="btn" href="https://vallibelmaintanance.github.io/maintenance_ledger/" target="_blank" rel="noopener" title="Open the Maintenance Ledger (expenses, AMC, PPM schedule, reports)" style="text-decoration:none;">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+        Maintenance Ledger
+      </a>
+      <button class="btn" onclick="openAdmin()">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 10-16 0"/></svg>
+        Admin
+      </button>
+    </div>
+  </div>
+</header>
+
+<div id="pg-home" class="page show">
+  <div class="pg-t" id="home-bn">Building Maintenance</div>
+  <div class="pg-s">Select a system to view its checklist, service records and inspection history.</div>
+  <div class="svc-grid" id="svc-grid"></div>
+</div>
+
+<div id="pg-detail" class="page">
+  <div class="back" onclick="goHome()">
+    <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+    All systems
+  </div>
+  <div class="dh">
+    <div class="dh-l">
+      <div class="dh-ic" id="dh-ic"></div>
+      <div>
+        <div class="dh-nm" id="dh-nm"></div>
+        <div class="dh-sb" id="dh-sb"></div>
+      </div>
+    </div>
+    <div class="dh-ac">
+      <button class="btn" onclick="showQR()">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="5" y="5" width="3" height="3"/><rect x="16" y="5" width="3" height="3"/><rect x="5" y="16" width="3" height="3"/><path d="M14 14h3v3h-3zM17 17h3v3h-3z"/></svg>
+        QR Code
+      </button>
+      <button class="btn btn-p" onclick="dTab('submit')">
+        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        New Check
+      </button>
+    </div>
+  </div>
+
+  <div class="fr" id="unit-bar" style="display:none"></div>
+
+  <div class="tabs">
+    <div class="tab active" id="tab-h" onclick="dTab('history')">History</div>
+    <div class="tab" id="tab-sr" onclick="dTab('service')">Service Records</div>
+    <div class="tab" id="tab-c" onclick="dTab('checklist')">Checklist</div>
+    <div class="tab" id="tab-s" onclick="dTab('submit')">Submit Check</div>
+  </div>
+
+  <div id="dt-history">
+    <div class="stats-row" id="dt-stats"></div>
+    <div class="sw">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" placeholder="Search records…" oninput="renderRecs()" id="h-search">
+    </div>
+    <div class="fr" id="h-filter"></div>
+    <div id="h-list"></div>
+  </div>
+
+  <div id="dt-service" style="display:none">
+    <div id="sr-locked" class="lkd">
+      <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+      <h3>Technician login required</h3>
+      <p>Enter your PIN to view and manage service records for this system.</p>
+      <button class="btn btn-p" onclick="openPIN('service')">Enter PIN</button>
+    </div>
+    <div id="sr-content" style="display:none">
+      <div id="sr-status-card"></div>
+      <div class="card">
+        <div class="card-t">
+          <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          Add New Service Record
+        </div>
+        <div class="fr3">
+          <div class="fg"><label>Last Service Date *</label><input class="fi" type="date" id="sr-last-date" oninput="calcNext()"></div>
+          <div class="fg"><label>Interval (months) *</label><input class="fi" type="number" id="sr-interval" value="3" min="1" max="60" oninput="calcNext()"></div>
+          <div class="fg"><label>Next Service Date (auto)</label><input class="fi" type="text" id="sr-next-date" readonly style="background:var(--sur2);color:var(--ac);font-weight:600;"></div>
+        </div>
+        <div class="fr2">
+          <div class="fg"><label>Service Company / Technician *</label><input class="fi" type="text" id="sr-tech" placeholder="e.g. ABC Engineering"></div>
+          <div class="fg"><label>Service Type</label>
+            <select class="fi" id="sr-type">
+              <option>Preventive Maintenance (PM)</option>
+              <option>Corrective Maintenance</option>
+              <option>Annual Service</option>
+              <option>Major Overhaul</option>
+              <option>Inspection Only</option>
+              <option>Emergency Repair</option>
+            </select>
+          </div>
+        </div>
+        <div class="fg"><label>Work Done / Remarks</label><textarea class="fi" id="sr-notes" placeholder="Describe work performed, parts replaced, observations…"></textarea></div>
+        <div class="fr2">
+          <div class="fg"><label>Cost (optional)</label><input class="fi" type="text" id="sr-cost" placeholder="e.g. 15,000 LKR"></div>
+          <div class="fg"><label>Reference / Invoice No.</label><input class="fi" type="text" id="sr-ref" placeholder="e.g. INV-2024-001"></div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-p" onclick="addSR()">
+            <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Save Service Record
+          </button>
+        </div>
+        <div class="alert a-ok" id="sr-ok" style="margin-top:12px">Service record saved ✓</div>
+        <div class="alert a-er" id="sr-er" style="margin-top:12px"></div>
+      </div>
+      <div class="card">
+        <div class="card-t">
+          <svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          Service History
+        </div>
+        <div id="sr-history-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="dt-checklist" style="display:none">
+    <div class="info-bar">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      Full checklist for this system. Technicians verify each item during inspection.
+    </div>
+    <div id="dt-cl-items"></div>
+  </div>
+
+  <div id="dt-submit" style="display:none">
+    <div id="sub-lkd" class="lkd">
+      <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+      <h3>Technician login</h3>
+      <p>Enter your technician PIN to submit a new maintenance check.</p>
+      <button class="btn btn-p" onclick="openPIN('submit')">Enter PIN</button>
+    </div>
+    <div id="sub-form" style="display:none">
+      <div class="alert a-ok" id="al-ok">Checklist submitted successfully ✓</div>
+      <div class="alert a-er" id="al-er"></div>
+      <div class="card">
+        <div class="card-t"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Technician details</div>
+        <div class="fr2">
+          <div class="fg"><label>Name *</label><input class="fi" id="f-tech" type="text" placeholder="Your full name"></div>
+          <div class="fg"><label>Date *</label><input class="fi" id="f-date" type="date"></div>
+        </div>
+        <div class="fr2">
+          <div class="fg"><label>Shift</label>
+            <select class="fi" id="f-shift">
+              <option>Morning (06:00–14:00)</option>
+              <option>Afternoon (14:00–22:00)</option>
+              <option>Night (22:00–06:00)</option>
+            </select>
+          </div>
+          <div class="fg"><label>Remarks</label><input class="fi" id="f-rem" type="text" placeholder="General observations…"></div>
+        </div>
+      </div>
+      <div id="sub-items"></div>
+      <div class="sub-bar">
+        <button class="btn" onclick="lockSub()">Cancel</button>
+        <button class="btn btn-p" onclick="doSubmit()">
+          <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+          Submit
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="pg-admin" class="page">
+  <div class="back" onclick="closeAdmin()">
+    <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+    Back
+  </div>
+  <div id="adm-lkd" class="lkd">
+    <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+    <h3>Admin access</h3>
+    <p>Enter your admin PIN to manage the system.</p>
+    <button class="btn btn-p" onclick="openPIN('admin')">Enter Admin PIN</button>
+  </div>
+  <div id="adm-panel" style="display:none">
+    <div class="pg-t" style="margin-bottom:16px">Admin Panel</div>
+
+    <div class="card"><div class="adm-sec">
+      <h3>Building name</h3>
+      <div class="fg"><input class="fi" id="adm-bn" type="text" placeholder="e.g. Sunrise Residencies"></div>
+      <button class="btn btn-p" onclick="saveBN()">Save</button>
+    </div></div>
+
+    <div class="card"><div class="adm-sec">
+      <h3>Technicians</h3>
+      <p style="font-size:13px;color:var(--tx2);margin-bottom:12px">Each technician logs in with their own name and personal 4-digit PIN. Untick "Active" to disable a login without deleting their history.</p>
+      <div id="adm-techs"></div>
+      <div class="add-r" style="margin-top:10px">
+        <input type="text" id="nt-name" placeholder="Technician name">
+        <input type="text" id="nt-pin" maxlength="4" inputmode="numeric" placeholder="4-digit PIN" style="max-width:110px;flex-shrink:0;">
+        <button class="btn btn-p" onclick="addTech()" style="flex-shrink:0">+ Add Technician</button>
+      </div>
+      <div id="nt-msg" style="font-size:13px;min-height:18px;margin-top:6px;"></div>
+    </div></div>
+
+    <div class="card"><div class="adm-sec">
+      <h3>Admin PIN</h3>
+      <p style="font-size:13px;color:var(--tx2);margin-bottom:12px">Used only by admin to access this settings panel.</p>
+      <div class="fr2">
+        <div class="fg"><label>New PIN (4 digits)</label><input class="fi" id="ap-n" type="password" inputmode="numeric" maxlength="4" placeholder="••••"></div>
+        <div class="fg"><label>Confirm PIN</label><input class="fi" id="ap-c" type="password" inputmode="numeric" maxlength="4" placeholder="••••"></div>
+      </div>
+      <div id="ap-msg" style="font-size:13px;min-height:18px;margin-bottom:8px;"></div>
+      <button class="btn btn-p" onclick="changePIN('admin')">Update Admin PIN</button>
+    </div></div>
+
+    <div class="card"><div class="adm-sec">
+      <h3>Systems &amp; Tasks</h3>
+      <datalist id="extra-presets">
+        <option value="Temperature">
+        <option value="Pressure">
+        <option value="Voltage">
+        <option value="Ampere">
+      </datalist>
+      <div id="adm-svcs"></div>
+      <hr class="divider">
+      <p style="font-size:13px;font-weight:600;margin-bottom:10px;">Add New System</p>
+      <div class="fr3" style="margin-bottom:8px">
+        <div class="fg"><label>System Name *</label><input class="fi" id="ns-name" type="text" placeholder="e.g. HVAC System"></div>
+        <div class="fg"><label>Icon (emoji)</label><input class="fi" id="ns-icon" type="text" placeholder="e.g. 🌡️" maxlength="4"></div>
+        <div class="fg"><label>Color</label>
+          <select class="fi" id="ns-color">
+            <option value="#1a56db">Blue</option><option value="#0ea5e9">Sky Blue</option>
+            <option value="#10b981">Green</option><option value="#ef4444">Red</option>
+            <option value="#f59e0b">Amber</option><option value="#8b5cf6">Purple</option>
+            <option value="#f97316">Orange</option><option value="#ec4899">Pink</option>
+            <option value="#6366f1">Indigo</option><option value="#14b8a6">Teal</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn btn-p" onclick="addSystem()">
+        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add System
+      </button>
+      <div id="ns-msg" style="font-size:13px;min-height:18px;margin-top:8px;"></div>
+    </div></div>
+
+    <div class="card"><div class="adm-sec">
+      <h3>Data Management</h3>
+      <div id="backup-due-banner" style="display:none;border:1px solid;border-radius:var(--rs);padding:10px 14px;font-size:13px;margin-bottom:12px;"></div>
+      <div style="background:var(--ac2);border-radius:var(--rs);padding:10px 14px;font-size:13px;color:var(--ac);margin-bottom:14px;">
+        Backup only runs when you (admin) open this panel. Click <strong>Backup Now</strong> — a save dialog lets you choose the exact folder on your PC. Database auto-clears every 2 months after backup.
+      </div>
+      <div class="exp-r">
+        <button class="btn btn-p" onclick="manualBackup()"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Backup Now</button>
+        <button class="btn" onclick="expCSV()"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Export CSV</button>
+        <button class="btn" onclick="document.getElementById('imp').click()"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Restore JSON</button>
+        <input type="file" id="imp" accept=".json" style="display:none" onchange="impJSON(event)">
+        <button class="btn" onclick="triggerManualClear()" style="color:var(--is);border-color:var(--isr)"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>Clear Records</button>
+      </div>
+      <div id="backup-status" style="margin-top:12px;font-size:12px;color:var(--tx2);"></div>
+    </div></div>
+  </div>
+</div>
+
+<div class="ov hidden" id="pin-ov">
+  <div class="modal">
+    <h3 id="pin-title">Enter PIN</h3>
+    <p class="modal-s" id="pin-sub">Enter your PIN.</p>
+    <div class="pin-dots">
+      <div class="pd" id="pd0"></div><div class="pd" id="pd1"></div>
+      <div class="pd" id="pd2"></div><div class="pd" id="pd3"></div>
+    </div>
+    <div class="kpad">
+      <div class="kk" onclick="pk('1')">1</div><div class="kk" onclick="pk('2')">2</div><div class="kk" onclick="pk('3')">3</div>
+      <div class="kk" onclick="pk('4')">4</div><div class="kk" onclick="pk('5')">5</div><div class="kk" onclick="pk('6')">6</div>
+      <div class="kk" onclick="pk('7')">7</div><div class="kk" onclick="pk('8')">8</div><div class="kk" onclick="pk('9')">9</div>
+      <div class="kk sm" onclick="pk('C')">Clear</div><div class="kk" onclick="pk('0')">0</div><div class="kk sm" onclick="pk('X')">⌫</div>
+    </div>
+    <div class="pin-er" id="pin-er"></div>
+    <div class="mf"><button class="btn" onclick="closePIN()">Cancel</button></div>
+  </div>
+</div>
+
+<div class="ov hidden" id="qr-ov">
+  <div class="modal" style="max-width:380px;">
+    <h3 id="qr-t">QR Code</h3>
+    <p class="modal-s">Scan to view checklist, service records and history. Post near the equipment.</p>
+    <div class="qr-w">
+      <div id="qr-box"></div>
+      <div class="qr-lb" id="qr-lb"></div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-p" onclick="printQR()" style="flex:1;justify-content:center">Print</button>
+      <button class="btn" onclick="document.getElementById('qr-ov').classList.add('hidden')" style="flex:1;justify-content:center">Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="ov hidden" id="edit-ov">
+  <div class="modal" style="max-width:500px;max-height:90vh;overflow-y:auto;">
+    <h3>Edit inspection record</h3>
+    <p class="modal-s" id="edit-sub"></p>
+    <div id="edit-body"></div>
+    <div class="mf">
+      <button class="btn" onclick="closeEdit()">Cancel</button>
+      <button class="btn btn-p" onclick="saveEdit()">Save changes</button>
+    </div>
+  </div>
+</div>
+
+<div class="ov hidden" id="esr-ov">
+  <div class="modal" style="max-width:500px;max-height:90vh;overflow-y:auto;">
+    <h3>Edit service record</h3>
+    <p class="modal-s" id="esr-sub"></p>
+    <div id="esr-body"></div>
+    <div class="mf">
+      <button class="btn" onclick="document.getElementById('esr-ov').classList.add('hidden')">Cancel</button>
+      <button class="btn btn-p" onclick="saveESR()">Save changes</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// DEFAULT SERVICES
+const DEFAULTS = [
+  {id:'chiller',name:'Chiller System',icon:'❄️',color:'#0ea5e9',tasks:[
+    {n:'Chiller unit visual inspection',f:'Daily'},{n:'Chilled water inlet/outlet temperature',f:'Daily'},
+    {n:'Condenser water flow check',f:'Daily'},{n:'Refrigerant pressure (high/low side)',f:'Weekly'},
+    {n:'Oil level & oil pressure',f:'Weekly'},{n:'Chilled water pump operation',f:'Daily'},
+    {n:'Condenser pump operation',f:'Daily'},{n:'Cooling tower fan operation',f:'Daily'},
+    {n:'Water treatment chemical levels',f:'Weekly'},{n:'Vibration & noise check',f:'Daily'},
+    {n:'Filter/strainer cleaning',f:'Monthly'},{n:'Control panel alarms clear',f:'Daily'}]},
+  {id:'fire',name:'Fire System',icon:'🔥',color:'#ef4444',tasks:[
+    {n:'Fire alarm panel status',f:'Daily'},{n:'Smoke detectors visual check',f:'Weekly'},
+    {n:'Manual call points accessible',f:'Weekly'},{n:'Fire extinguishers (seal & pressure)',f:'Monthly'},
+    {n:'Fire hose reel condition & pressure',f:'Monthly'},{n:'Sprinkler heads visual check',f:'Monthly'},
+    {n:'Fire pump operation test',f:'Weekly'},{n:'Emergency lighting check',f:'Monthly'},
+    {n:'Fire doors operation & seals',f:'Monthly'},{n:'Alarm sounders function test',f:'Monthly'},
+    {n:'Fire suppression system pressure',f:'Weekly'}]},
+  {id:'generator',name:'Generator',icon:'⚡',color:'#f59e0b',tasks:[
+    {n:'Fuel level check',f:'Daily'},{n:'Engine oil level',f:'Daily'},
+    {n:'Coolant level',f:'Daily'},{n:'Battery voltage & condition',f:'Daily'},
+    {n:'Visual leaks (fuel/oil/coolant)',f:'Daily'},{n:'Generator test run (no load)',f:'Weekly'},
+    {n:'Auto transfer switch (ATS) operation',f:'Weekly'},{n:'Exhaust system condition',f:'Weekly'},
+    {n:'Air filter condition',f:'Monthly'},{n:'Belt tension & condition',f:'Monthly'},
+    {n:'Fuel tank drain (water/sediment)',f:'Monthly'},{n:'Panel alarms & indicators',f:'Daily'}]},
+  {id:'water',name:'Supply Water',icon:'💧',color:'#3b82f6',tasks:[
+    {n:'Overhead tank level',f:'Daily'},{n:'Underground sump tank level',f:'Daily'},
+    {n:'Booster pump operation',f:'Daily'},{n:'Transfer pump operation',f:'Daily'},
+    {n:'Pressure gauge reading',f:'Daily'},{n:'Visible pipe leaks check',f:'Daily'},
+    {n:'Ball valve condition',f:'Weekly'},{n:'Water quality/clarity check',f:'Weekly'},
+    {n:'Tank cleaning schedule compliance',f:'Monthly'},{n:'Meter reading logged',f:'Monthly'},
+    {n:'Backflow preventer check',f:'Monthly'}]},
+  {id:'electric',name:'Electric Panels',icon:'🔌',color:'#8b5cf6',tasks:[
+    {n:'Main LV panel visual inspection',f:'Daily'},{n:'Switchgear temperature (IR check)',f:'Weekly'},
+    {n:'MCB/MCCB tripped breakers check',f:'Daily'},{n:'Busbar connection tightness',f:'Monthly'},
+    {n:'Earthing & bonding continuity',f:'Monthly'},{n:'Panel door seals & locks',f:'Weekly'},
+    {n:'Power factor reading',f:'Weekly'},{n:'Voltage & current readings (R/Y/B)',f:'Daily'},
+    {n:'UPS battery level & health',f:'Daily'},{n:'Cable tray cleanliness',f:'Monthly'},
+    {n:'Panel ventilation/cooling fans',f:'Weekly'},{n:'Indicator lamps functional',f:'Daily'}]},
+  {id:'ahu',name:'AHU',icon:'🌬️',color:'#10b981',tasks:[
+    {n:'AHU unit visual inspection',f:'Daily'},{n:'Supply/return air temperature',f:'Daily'},
+    {n:'Fan belt condition & tension',f:'Weekly'},{n:'Air filter condition',f:'Weekly'},
+    {n:'Coil cleanliness check',f:'Monthly'},{n:'Condensate drain pan & pipe',f:'Weekly'},
+    {n:'Damper operation',f:'Monthly'},{n:'Vibration & noise level',f:'Daily'},
+    {n:'Controls & thermostat accuracy',f:'Weekly'},{n:'Fresh air intake obstruction check',f:'Weekly'},
+    {n:'Insulation condition',f:'Monthly'}]},
+  {id:'plift',name:'Passenger Lifts',icon:'🛗',color:'#6366f1',tasks:[
+    {n:'Lift operation & ride quality',f:'Daily'},{n:'Door opening/closing operation',f:'Daily'},
+    {n:'Door safety sensor function',f:'Daily'},{n:'Emergency call button test',f:'Weekly'},
+    {n:'Interior lighting & ventilation',f:'Daily'},{n:'Floor levelling accuracy',f:'Daily'},
+    {n:'Overload indicator function',f:'Weekly'},{n:'Machine room temperature',f:'Daily'},
+    {n:'Oil level (machine room)',f:'Weekly'},{n:'Guide rail lubrication',f:'Monthly'},
+    {n:'Safety gear & brake test',f:'Monthly'},{n:'Pit sump check (no water)',f:'Weekly'},
+    {n:'Controller panel alarms clear',f:'Daily'}]},
+  {id:'clift',name:'Car Lifts',icon:'🚗',color:'#f97316',tasks:[
+    {n:'Hydraulic oil level',f:'Daily'},{n:'Platform level & alignment',f:'Daily'},
+    {n:'Safety interlock operation',f:'Daily'},{n:'Control panel visual check',f:'Daily'},
+    {n:'Hose & fitting leaks',f:'Weekly'},{n:'Platform structure inspection',f:'Weekly'},
+    {n:'Limit switch operation',f:'Weekly'},{n:'Pump motor condition',f:'Weekly'},
+    {n:'Guide rollers/wheels',f:'Monthly'},{n:'Load capacity marking visible',f:'Monthly'},
+    {n:'Emergency lowering function',f:'Monthly'}]},
+  {id:'stacker',name:'Car Stackers',icon:'🅿️',color:'#ec4899',tasks:[
+    {n:'Stacker operation test (up/down)',f:'Daily'},{n:'Safety sensor & photo-eye test',f:'Daily'},
+    {n:'Drive chain/cable condition',f:'Weekly'},{n:'Chain/cable lubrication',f:'Monthly'},
+    {n:'Structural frame inspection',f:'Monthly'},{n:'Motor & gearbox condition',f:'Weekly'},
+    {n:'Control panel & wiring check',f:'Weekly'},{n:'Emergency stop function',f:'Weekly'},
+    {n:'Platform alignment & levelness',f:'Daily'},{n:'Load capacity marking visible',f:'Monthly'},
+    {n:'Noise & vibration check',f:'Daily'}]}
+];
+
+// STATE
+let S = {
+  techPin:'1234', adminPin:'9999',
+  technicians:[],
+  buildingName:'Building Maintenance',
+  services: JSON.parse(JSON.stringify(DEFAULTS)),
+  records:{},
+  serviceRecs:{}
+};
+let curSvc=null, curUnit=null, pinTarget='', pinBuf='', curTech=null;
+let subUnlocked=false, adminUnlocked=false, srUnlocked=false;
+let activeFil='all', editRec=null, esrIdx=null;
+
+// ── CLOUD SYNC (Firebase Realtime Database) ──
+const FB_URL = 'https://building-maintenance-78242-default-rtdb.firebaseio.com/data.json';
+let saveTimer=null;
+let cloudOK=false;
+
+function ensureDefaults(){
+  if(!Array.isArray(S.technicians)) S.technicians=[];
+  if(!S.technicians.length){
+    // Migrate old shared technician PIN into an individual account so existing logins keep working
+    S.technicians.push({id:Date.now(),name:'Technician',pin:S.techPin||'1234',active:true});
+  }
+  S.services.forEach(s=>{
+    if(!s.units) s.units=[];
+    if(!S.records[s.id]) S.records[s.id]=[];
+    if(!S.serviceRecs[s.id]) S.serviceRecs[s.id]=[];
+    if(s.units.length){
+      if(Array.isArray(S.records[s.id])) S.records[s.id]={};
+      if(Array.isArray(S.serviceRecs[s.id])) S.serviceRecs[s.id]={};
+      s.units.forEach(u=>{
+        if(!S.records[s.id][u.id]) S.records[s.id][u.id]=[];
+        if(!S.serviceRecs[s.id][u.id]) S.serviceRecs[s.id][u.id]=[];
+        if(!u.tasks) u.tasks=JSON.parse(JSON.stringify(s.tasks||[]));
+      });
+    }
+  });
+}
+
+// Get the records array for the current service/unit context
+function getRecs(sId,uId){
+  const s=getSvc(sId);
+  if(s.units&&s.units.length){
+    if(!uId) return [];
+    if(!S.records[sId]) S.records[sId]={};
+    if(!S.records[sId][uId]) S.records[sId][uId]=[];
+    return S.records[sId][uId];
+  }
+  if(!S.records[sId]) S.records[sId]=[];
+  return S.records[sId];
+}
+function getSRecsArr(sId,uId){
+  const s=getSvc(sId);
+  if(s.units&&s.units.length){
+    if(!uId) return [];
+    if(!S.serviceRecs[sId]) S.serviceRecs[sId]={};
+    if(!S.serviceRecs[sId][uId]) S.serviceRecs[sId][uId]=[];
+    return S.serviceRecs[sId][uId];
+  }
+  if(!S.serviceRecs[sId]) S.serviceRecs[sId]=[];
+  return S.serviceRecs[sId];
+}
+// Total records across all units (for home page counts)
+function allRecs(sId){
+  const s=getSvc(sId);
+  if(s.units&&s.units.length) return s.units.flatMap(u=>(S.records[sId]&&S.records[sId][u.id])||[]);
+  return S.records[sId]||[];
+}
+function allSRecs(sId){
+  const s=getSvc(sId);
+  if(s.units&&s.units.length) return s.units.flatMap(u=>(S.serviceRecs[sId]&&S.serviceRecs[sId][u.id])||[]);
+  return S.serviceRecs[sId]||[];
+}
+
+// Get the task list for a system/unit context. If a system has units,
+// each unit has its own independent task list (u.tasks). Otherwise svc.tasks.
+function getTasks(svc,uId){
+  if(svc.units&&svc.units.length){
+    const u=svc.units.find(x=>x.id===uId);
+    if(!u) return [];
+    if(!u.tasks) u.tasks=[];
+    return u.tasks;
+  }
+  if(!svc.tasks) svc.tasks=[];
+  return svc.tasks;
+}
+function loadLocal(){
+  try{ const d=localStorage.getItem('bmaint4'); if(d) S={...S,...JSON.parse(d)}; }catch(e){}
+  ensureDefaults();
+}
+
+async function load(){
+  // Show a loading state immediately — don't render stale local data as "current"
+  // Only use local as fallback if Firebase is unreachable
+  try{
+    // cache:'no-store' forces browser to ALWAYS hit Firebase, never use HTTP cache
+    // t= param is extra cache-buster in case server ignores no-store
+    const res = await fetch(FB_URL + '?t=' + Date.now(), {
+      cache: 'no-store'
+    });
+    if(res.ok){
+      const data = await res.json();
+      if(data && data.services){
+        // Firebase has data — use it as the truth, ignore local cache
+        S = {...S, ...data};
+        ensureDefaults();
+        localStorage.setItem('bmaint4', JSON.stringify(S));
+      } else {
+        // Firebase is empty (new setup) — use local defaults
+        loadLocal();
+      }
+      cloudOK = true;
+    } else {
+      // Firebase error — fall back to local cache
+      loadLocal();
+      cloudOK = false;
+    }
+  } catch(e){
+    // Network error — fall back to local cache so site still works offline
+    loadLocal();
+    cloudOK = false;
+  }
+  updateSyncBadge();
+}
+
+function save(){
+  localStorage.setItem('bmaint4',JSON.stringify(S));
+  if(saveTimer) clearTimeout(saveTimer);
+  saveTimer=setTimeout(pushToCloud, 600);
+}
+
+async function pushToCloud(){
+  try{
+    const res = await fetch(FB_URL, {
+      method:'PUT',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(S)
+    });
+    cloudOK = res.ok;
+  }catch(e){
+    cloudOK=false;
+  }
+  updateSyncBadge();
+}
+
+async function refreshFromCloud(){
+  const badge = document.getElementById('sync-badge');
+  if(badge){ badge.textContent='Syncing…'; badge.style.color='var(--tx2)'; }
+  await load();
+  // Re-render whatever page is currently visible
+  if(document.getElementById('pg-detail').classList.contains('show') && curSvc){
+    renderHome();
+    // Re-open current service view and tab to show fresh data
+    const svc = getSvc(curSvc);
+    document.getElementById('dh-nm').textContent = svc.name;
+    document.getElementById('dh-sb').textContent = allRecs(curSvc).length + ' inspection records';
+    renderStats();
+    renderRecs();
+    if(srUnlocked) renderSRTab();
+  } else {
+    renderHome();
+  }
+}
+
+function updateSyncBadge(){
+  const el=document.getElementById('sync-badge');
+  if(!el) return;
+  if(cloudOK){ el.textContent='Synced'; el.style.color='var(--ok)'; }
+  else { el.textContent='Offline (local only)'; el.style.color='var(--is)'; }
+}
+
+// ── BACKUP & CLEAR (Admin only) ──
+// Called only after admin PIN is verified — never runs for regular visitors.
+
+function checkAutoBackupAndClear(){
+  // Only runs when admin opens the panel.
+  // Check if a backup is due this month or a clear is due.
+  const now=new Date();
+  const monthKey=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+  const lastBackup=localStorage.getItem('lastBackupMonth');
+  const backupDue = lastBackup !== monthKey;
+  const clearDue = shouldClearThisMonth();
+
+  const totalRecs=S.services.reduce((sum,s)=>sum+allRecs(s.id).length+allSRecs(s.id).length,0);
+  if(totalRecs===0 && !clearDue) return; // nothing to back up
+
+  // Show a non-intrusive banner inside admin panel instead of a popup
+  const banner = document.getElementById('backup-due-banner');
+  if(!banner) return;
+  if(backupDue){
+    banner.style.display='block';
+    banner.innerHTML = clearDue
+      ? '<strong>⚠️ Monthly backup + 2-month clear due.</strong> Download the backup first, then clear records. Use the buttons below.'
+      : '<strong>📅 Monthly backup due.</strong> Click "Backup Now" below to save the backup file to your PC.';
+    banner.style.background='#fef3c7';
+    banner.style.color='#92400e';
+    banner.style.borderColor='#fbbf24';
+  } else if(clearDue){
+    banner.style.display='block';
+    banner.innerHTML='<strong>🗑️ 2-month database clear due.</strong> Click "Clear Records" below (backup will be saved automatically first).';
+    banner.style.background='#fee2e2';
+    banner.style.color='#991b1b';
+    banner.style.borderColor='#fca5a5';
+  }
+}
+
+function shouldClearThisMonth(){
+  const lastClear=localStorage.getItem('lastClearMonth');
+  if(!lastClear) return false;
+  const now=new Date();
+  const [ly,lm]=lastClear.split('-').map(Number);
+  return (now.getFullYear()-ly)*12+(now.getMonth()+1-lm)>=2;
+}
+
+// Save backup file — uses File System Access API if available (lets admin
+// pick save location on PC). Falls back to standard download if not supported.
+async function manualBackup(){
+  const now=new Date();
+  const stamp=now.toISOString().split('T')[0];
+  const filename='maintenance_backup_'+stamp+'.json';
+  const content=JSON.stringify(S,null,2);
+
+  // File System Access API — Chrome/Edge on desktop lets user pick folder
+  if(window.showSaveFilePicker){
+    try{
+      const handle = await window.showSaveFilePicker({
+        suggestedName: filename,
+        types:[{description:'JSON Backup',accept:{'application/json':['.json']}}]
+      });
+      const writable = await handle.createWritable();
+      await writable.write(content);
+      await writable.close();
+      const monthKey=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+      localStorage.setItem('lastBackupMonth',monthKey);
+      showBackupStatus();
+      hideBanner();
+      showNotification('Backup saved: '+filename,'ok');
+      return;
+    }catch(e){
+      if(e.name==='AbortError') return; // user cancelled — do nothing
+      // fall through to standard download if API fails
+    }
+  }
+
+  // Fallback: standard download (browser decides location)
+  dl(filename,content,'application/json');
+  const monthKey=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+  localStorage.setItem('lastBackupMonth',monthKey);
+  showBackupStatus();
+  hideBanner();
+  showNotification('Backup downloaded: '+filename,'ok');
+}
+
+async function triggerManualClear(){
+  if(!confirm('Clear ALL inspection and service records?\n\nA backup will be saved to your PC first. Settings, PINs and checklist tasks are kept.\n\nProceed?')) return;
+  // Save backup first
+  await manualBackup();
+  // Then clear
+  setTimeout(async()=>{ await doAutoClear(); },800);
+}
+
+async function doAutoClear(){
+  const cleared={...S};
+  cleared.records={};
+  cleared.serviceRecs={};
+  S.services.forEach(s=>{
+    if(s.units&&s.units.length){
+      cleared.records[s.id]={};
+      cleared.serviceRecs[s.id]={};
+      s.units.forEach(u=>{ cleared.records[s.id][u.id]=[]; cleared.serviceRecs[s.id][u.id]=[]; });
+    } else {
+      cleared.records[s.id]=[];
+      cleared.serviceRecs[s.id]=[];
+    }
+  });
+  S=cleared;
+  localStorage.setItem('bmaint4',JSON.stringify(S));
+  const now=new Date();
+  localStorage.setItem('lastClearMonth',now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0'));
+  await pushToCloud();
+  renderHome();
+  showBackupStatus();
+  hideBanner();
+  showNotification('Database cleared. Records removed, settings preserved.','ok');
+}
+
+function hideBanner(){
+  const b=document.getElementById('backup-due-banner');
+  if(b) b.style.display='none';
+}
+
+function showBackupStatus(){
+  const el=document.getElementById('backup-status');
+  if(!el) return;
+  const lastB=localStorage.getItem('lastBackupMonth')||'Never';
+  const lastC=localStorage.getItem('lastClearMonth')||'Never';
+  const nextClear=()=>{
+    const lc=localStorage.getItem('lastClearMonth');
+    if(!lc) return 'After first backup';
+    const [ly,lm]=lc.split('-').map(Number);
+    const next=new Date(ly,lm+1,1);
+    return next.toLocaleDateString('en-GB',{month:'short',year:'numeric'});
+  };
+  el.innerHTML='Last backup: <strong>'+lastB+'</strong> &nbsp;|&nbsp; Last clear: <strong>'+lastC+'</strong> &nbsp;|&nbsp; Next clear due: <strong>'+nextClear()+'</strong>';
+}
+
+function showNotification(msg,type){
+  let el=document.getElementById('global-notif');
+  if(!el){
+    el=document.createElement('div');
+    el.id='global-notif';
+    el.style.cssText='position:fixed;top:70px;right:16px;z-index:999;padding:10px 16px;border-radius:8px;font-size:13px;font-weight:500;max-width:320px;box-shadow:0 4px 12px rgba(0,0,0,.15);border:1px solid transparent;';
+    document.body.appendChild(el);
+  }
+  el.textContent=msg;
+  el.style.background=type==='ok'?'#dcfce7':'#fee2e2';
+  el.style.color=type==='ok'?'#166534':'#b91c1c';
+  el.style.borderColor=type==='ok'?'#86efac':'#fca5a5';
+  el.style.display='block';
+  setTimeout(()=>el.style.display='none',5000);
+}
+
+// ROUTING
+function goHome(){ show('pg-home'); hide('pg-detail'); hide('pg-admin'); renderHome(); }
+function openAdmin(){ hide('pg-home'); hide('pg-detail'); show('pg-admin'); document.getElementById('adm-lkd').style.display=''; document.getElementById('adm-panel').style.display='none'; adminUnlocked=false; }
+function closeAdmin(){ goHome(); }
+
+function openSvc(id,uId){
+  curSvc=id; subUnlocked=false; srUnlocked=false; curTech=null; activeFil='all';
+  const s=getSvc(id);
+  curUnit = (s.units&&s.units.length) ? (uId||s.units[0].id) : null;
+  hide('pg-home'); show('pg-detail');
+  document.getElementById('dh-ic').textContent=s.icon;
+  document.getElementById('dh-ic').style.background=s.color+'22';
+  document.getElementById('dh-nm').textContent=s.name;
+  renderUnitBar();
+  updateDhSb();
+  document.getElementById('sub-lkd').style.display='';
+  document.getElementById('sub-form').style.display='none';
+  document.getElementById('sr-locked').style.display='';
+  document.getElementById('sr-content').style.display='none';
+  dTab('history');
+}
+function updateDhSb(){
+  const s=getSvc(curSvc);
+  let txt=getRecs(curSvc,curUnit).length+' inspection records';
+  if(s.units&&s.units.length){
+    const u=s.units.find(u=>u.id===curUnit);
+    if(u) txt=u.name+' · '+txt;
+  }
+  document.getElementById('dh-sb').textContent=txt;
+}
+function renderUnitBar(){
+  const s=getSvc(curSvc);
+  const el=document.getElementById('unit-bar');
+  if(!s.units||!s.units.length){ el.style.display='none'; el.innerHTML=''; return; }
+  el.style.display='flex';
+  el.innerHTML=s.units.map(u=>`<div class="fb ${u.id===curUnit?'on':''}" onclick="switchUnit('${u.id}')">${u.name}</div>`).join('');
+}
+function switchUnit(uId){
+  if(uId===curUnit) return;
+  curUnit=uId; subUnlocked=false; srUnlocked=false; curTech=null; activeFil='all';
+  renderUnitBar(); updateDhSb();
+  document.getElementById('sub-lkd').style.display='';
+  document.getElementById('sub-form').style.display='none';
+  document.getElementById('sr-locked').style.display='';
+  document.getElementById('sr-content').style.display='none';
+  dTab('history');
+}
+
+// HOME
+function renderHome(){
+  document.getElementById('hdr-bn').textContent=S.buildingName;
+  document.getElementById('home-bn').textContent=S.buildingName;
+  document.getElementById('svc-grid').innerHTML=S.services.map(s=>{
+    const recs=allRecs(s.id);
+    const srecs=allSRecs(s.id);
+    const last=recs.length?recs[recs.length-1]:null;
+    const lastStr=last?fmtDate(last.date)+' · '+last.technician:'No checks yet';
+    const issues=recs.filter(r=>r.items.some(i=>i.status==='issue')).length;
+    const lastSR=srecs.length?srecs[srecs.length-1]:null;
+    let svcBarHTML='';
+    if(lastSR&&lastSR.nextDate){
+      const st=nextSvcStatus(lastSR.nextDate);
+      const dotColor=st.cls==='ok'?'#16a34a':st.cls==='warn'?'#d97706':'#dc2626';
+      svcBarHTML=`<div class="sc-svc-bar">
+        <span><span class="sc-svc-dot" style="background:${dotColor}"></span>Next service: <strong>${fmtDate(lastSR.nextDate)}</strong></span>
+        <span class="sc-b ${st.cls}">${st.label}</span>
+      </div>`;
+    }
+    return `<div class="svc-card" onclick="openSvc('${s.id}')">
+      <div class="sc-top">
+        <div class="sc-ic" style="background:${s.color}22">${s.icon}</div>
+        <div><div class="sc-nm">${s.name}</div><div class="sc-ls">${lastStr}</div></div>
+      </div>
+      <div class="sc-stats">
+        <span class="sc-b ok">${recs.length} checks</span>
+        ${issues?`<span class="sc-b is">${issues} issues</span>`:''}
+        <span class="sc-b na">${srecs.length} services</span>
+        ${(s.units&&s.units.length)?`<span class="sc-b warn">${s.units.length} units</span>`:''}
+      </div>
+      ${svcBarHTML}
+      <button class="sc-qr" onclick="event.stopPropagation();qrForSvc('${s.id}')">📲 Show QR code</button>
+    </div>`;
+  }).join('');
+}
+
+function nextSvcStatus(dateStr){
+  const now=new Date(); now.setHours(0,0,0,0);
+  const nd=new Date(dateStr+'T00:00:00');
+  const diff=Math.round((nd-now)/864e5);
+  if(diff<0) return{label:'Overdue '+Math.abs(diff)+'d',cls:'is'};
+  if(diff<=14) return{label:'Due in '+diff+'d',cls:'warn'};
+  return{label:'In '+diff+' days',cls:'ok'};
+}
+
+function qrForSvc(id,uId){
+  const s=getSvc(id);
+  let url=location.href.split('?')[0].split('#')[0]+'?svc='+id;
+  let title=s.icon+' '+s.name;
+  if(uId){
+    const u=s.units&&s.units.find(x=>x.id===uId);
+    if(u){ url+='&unit='+uId; title+=' — '+u.name; }
+  }
+  document.getElementById('qr-t').textContent=title;
+  document.getElementById('qr-lb').textContent=url;
+  document.getElementById('qr-box').innerHTML='';
+  new QRCode(document.getElementById('qr-box'),{text:url,width:200,height:200,colorDark:'#111318',colorLight:'#fff'});
+  document.getElementById('qr-ov').classList.remove('hidden');
+}
+
+// TABS
+function dTab(t){
+  const map={history:'h',service:'sr',checklist:'c',submit:'s'};
+  Object.keys(map).forEach(k=>{ document.getElementById('tab-'+map[k]).classList.remove('active'); document.getElementById('dt-'+k).style.display='none'; });
+  document.getElementById('tab-'+map[t]).classList.add('active');
+  document.getElementById('dt-'+t).style.display='block';
+  if(t==='history'){renderStats();renderRecs();}
+  if(t==='service'){renderSRTab();}
+  if(t==='checklist'){renderChecklist();}
+  if(t==='submit'&&subUnlocked){renderSubForm();}
+}
+
+// STATS
+function renderStats(){
+  const recs=getRecs(curSvc,curUnit);
+  const now=new Date();
+  const month=recs.filter(r=>{const d=new Date(r.date);return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();}).length;
+  const week=recs.filter(r=>(now-new Date(r.date))/864e5<=7).length;
+  const issues=recs.filter(r=>r.items.some(i=>i.status==='issue')).length;
+  document.getElementById('dt-stats').innerHTML=`
+    <div class="stat"><div class="stat-n">${recs.length}</div><div class="stat-l">Total</div></div>
+    <div class="stat"><div class="stat-n">${month}</div><div class="stat-l">This month</div></div>
+    <div class="stat"><div class="stat-n">${week}</div><div class="stat-l">Last 7 days</div></div>
+    <div class="stat"><div class="stat-n" style="color:${issues>0?'var(--is)':'var(--ok)'}">${issues}</div><div class="stat-l">With issues</div></div>`;
+  const techs=['all',...new Set(getRecs(curSvc,curUnit).map(r=>r.technician))];
+  document.getElementById('h-filter').innerHTML=techs.map(t=>`<div class="fb ${activeFil===t?'on':''}" onclick="setFil('${t}')">${t==='all'?'All':t}</div>`).join('');
+}
+function setFil(f){activeFil=f;renderStats();renderRecs();}
+
+// INSPECTION RECORDS
+function renderRecs(){
+  const q=(document.getElementById('h-search').value||'').toLowerCase();
+  let recs=[...getRecs(curSvc,curUnit)].reverse();
+  if(q) recs=recs.filter(r=>(r.technician||'').toLowerCase().includes(q)||(r.date||'').includes(q)||(r.remarks||'').toLowerCase().includes(q));
+  if(activeFil!=='all') recs=recs.filter(r=>r.technician===activeFil);
+  const el=document.getElementById('h-list');
+  if(!recs.length){el.innerHTML=`<div class="empty"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg><p>No inspection records yet.</p></div>`;return;}
+  el.innerHTML=recs.map(r=>{
+    const ri=findRI(curSvc,r.id,curUnit);
+    const ok=r.items.filter(i=>i.status==='ok').length;
+    const is=r.items.filter(i=>i.status==='issue').length;
+    const na=r.items.filter(i=>i.status==='na').length;
+    return `<div class="rec">
+      <div class="rec-h" onclick="togRec(this)">
+        <div class="rec-m">
+          <div class="rec-d">${fmtDate(r.date)} · ${r.shift.split(' ')[0]}</div>
+          <div class="rec-i">${r.technician}${r.remarks?' · '+r.remarks:''}</div>
+        </div>
+        <div class="rec-r">
+          ${ok?`<span class="badge b-ok">${ok} OK</span>`:''}
+          ${is?`<span class="badge b-is">${is} Issue</span>`:''}
+          ${na?`<span class="badge b-na">${na} N/A</span>`:''}
+          <svg class="chev" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+      </div>
+      <div class="rec-b">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <span style="font-size:12px;color:var(--tx2)">${r.submittedAt?new Date(r.submittedAt).toLocaleString():r.date}</span>
+          <button class="rb-eb" onclick="openEdit('${curSvc}',${ri},'${curUnit||''}')">✏️ Edit</button>
+        </div>
+        ${r.items.map(it=>`<div class="rb-it">
+          <div class="rb-nm"><div>${it.n||it.name}<span style="display:inline-block;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:600;background:var(--ac2);color:var(--ac);margin-left:6px">${it.f||it.freq||''}</span></div>
+          ${it.note?`<div class="rb-nt">📝 ${it.note}</div>`:''}
+          ${it.extraLabel&&it.extra?`<div class="rb-nt">📊 ${it.extraLabel}: ${it.extra}</div>`:''}</div>
+          <span class="badge ${it.status==='ok'?'b-ok':it.status==='issue'?'b-is':'b-na'}">${it.status==='ok'?'OK':it.status==='issue'?'Issue':it.status==='na'?'N/A':'—'}</span>
+        </div>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+function togRec(h){const b=h.nextElementSibling,c=h.querySelector('.chev');const o=b.classList.toggle('open');c.classList.toggle('open',o);}
+
+// SERVICE RECORDS TAB
+function renderSRTab(){
+  if(!srUnlocked) return;
+  const srecs=getSRecsArr(curSvc,curUnit);
+  const lastSR=srecs.length?srecs[srecs.length-1]:null;
+  let statusHTML='';
+  if(lastSR){
+    const st=nextSvcStatus(lastSR.nextDate);
+    const now=new Date(); now.setHours(0,0,0,0);
+    const ld=new Date(lastSR.lastDate+'T00:00:00');
+    const nd=new Date(lastSR.nextDate+'T00:00:00');
+    const total=nd-ld, elapsed=now-ld;
+    const pct=Math.min(100,Math.max(0,Math.round(elapsed/total*100)));
+    const barColor=st.cls==='ok'?'#16a34a':st.cls==='warn'?'#d97706':'#dc2626';
+    statusHTML=`<div class="sr-card" style="border-left:4px solid ${barColor};">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:14px;">
+        <div style="font-size:14px;font-weight:600;">Current Service Status</div>
+        <span class="next-badge ${st.cls}">${st.label}</span>
+      </div>
+      <div class="sr-grid">
+        <div class="sr-field"><div class="sr-lbl">Last Service</div><div class="sr-val">${fmtDate(lastSR.lastDate)}</div></div>
+        <div class="sr-field"><div class="sr-lbl">Next Service Due</div><div class="sr-val ${st.cls}">${fmtDate(lastSR.nextDate)}</div></div>
+        <div class="sr-field"><div class="sr-lbl">Interval</div><div class="sr-val">${lastSR.interval} month${lastSR.interval>1?'s':''}</div></div>
+        <div class="sr-field"><div class="sr-lbl">Service Type</div><div class="sr-val" style="font-size:13px">${lastSR.type}</div></div>
+      </div>
+      <div class="sr-lbl" style="margin-bottom:4px">Service cycle progress</div>
+      <div class="sr-progress"><div class="sr-bar" style="width:${pct}%;background:${barColor}"></div></div>
+      <div style="font-size:11px;color:var(--tx2);margin-top:3px">${pct}% of ${lastSR.interval}-month cycle elapsed</div>
+      ${lastSR.notes?`<div style="margin-top:10px;font-size:13px;color:var(--tx2);border-top:1px solid var(--bdr);padding-top:10px;">📝 ${lastSR.notes}</div>`:''}
+    </div>`;
+  } else {
+    statusHTML=`<div class="sr-card" style="text-align:center;padding:24px;color:var(--tx2);border:1px dashed var(--bdr);">
+      <div style="font-size:28px;margin-bottom:8px">🔧</div>
+      <p style="font-size:14px;font-weight:500;margin-bottom:4px">No service records yet</p>
+      <p style="font-size:13px">Add the first service record below to start tracking.</p>
+    </div>`;
+  }
+  document.getElementById('sr-status-card').innerHTML=statusHTML;
+  const histHTML=srecs.length?[...srecs].map((sr,ri)=>({sr,ri})).reverse().map(({sr,ri})=>{
+    return `<div class="svc-hist-item">
+      <div class="svc-hist-dot"></div>
+      <div class="svc-hist-info">
+        <div class="svc-hist-date">${fmtDate(sr.lastDate)} → Next: ${fmtDate(sr.nextDate)}</div>
+        <div class="svc-hist-detail">${sr.type} · ${sr.tech}${sr.cost?' · '+sr.cost:''}${sr.ref?' · Ref: '+sr.ref:''}</div>
+        ${sr.notes?`<div style="font-size:12px;color:var(--tx2);margin-top:2px">📝 ${sr.notes}</div>`:''}
+      </div>
+      <div class="svc-edit-btns">
+        <button class="rb-eb" onclick="openESR(${ri})">✏️</button>
+        <button class="rb-eb btn-d" style="border-color:var(--isr)" onclick="deleteSR(${ri})">🗑️</button>
+      </div>
+    </div>`;
+  }).join(''):`<div style="text-align:center;padding:20px;color:var(--tx2);font-size:13px">No service history yet.</div>`;
+  document.getElementById('sr-history-list').innerHTML=histHTML;
+}
+
+function calcNext(){
+  const ld=document.getElementById('sr-last-date').value;
+  const months=parseInt(document.getElementById('sr-interval').value)||3;
+  if(!ld){document.getElementById('sr-next-date').value='';return;}
+  document.getElementById('sr-next-date').value=calcNextDate(ld,months);
+}
+function calcNextDate(ld,months){
+  const d=new Date(ld+'T00:00:00'); d.setMonth(d.getMonth()+months); return d.toISOString().split('T')[0];
+}
+
+function addSR(){
+  const ld=document.getElementById('sr-last-date').value;
+  const tech=document.getElementById('sr-tech').value.trim();
+  if(!ld||!tech){showAl('sr-er','Please fill in Last Service Date and Technician/Company.');return;}
+  const months=parseInt(document.getElementById('sr-interval').value)||3;
+  const nd=document.getElementById('sr-next-date').value||calcNextDate(ld,months);
+  const rec={id:Date.now(),lastDate:ld,nextDate:nd,interval:months,
+    type:document.getElementById('sr-type').value,
+    tech,notes:document.getElementById('sr-notes').value.trim(),
+    cost:document.getElementById('sr-cost').value.trim(),
+    ref:document.getElementById('sr-ref').value.trim(),
+    createdAt:new Date().toISOString()};
+  getSRecsArr(curSvc,curUnit).push(rec);
+  save();
+  showAl('sr-ok','Service record saved ✓');
+  ['sr-last-date','sr-next-date','sr-tech','sr-notes','sr-cost','sr-ref'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('sr-interval').value='3';
+  renderSRTab();
+  renderHome();
+}
+
+function deleteSR(ri){
+  if(!confirm('Delete this service record?')) return;
+  getSRecsArr(curSvc,curUnit).splice(ri,1); save(); renderSRTab(); renderHome();
+}
+
+function openESR(ri){
+  esrIdx=ri;
+  const sr=getSRecsArr(curSvc,curUnit)[ri];
+  document.getElementById('esr-sub').textContent=fmtDate(sr.lastDate)+' · '+sr.tech;
+  document.getElementById('esr-body').innerHTML=`
+    <div class="fr2"><div class="fg"><label>Last Service Date</label><input class="fi" id="esr-ld" type="date" value="${sr.lastDate}" oninput="esrCalcNext()"></div>
+    <div class="fg"><label>Interval (months)</label><input class="fi" id="esr-iv" type="number" value="${sr.interval}" min="1" max="60" oninput="esrCalcNext()"></div></div>
+    <div class="fg"><label>Next Service Date (auto)</label><input class="fi" id="esr-nd" type="text" readonly style="background:var(--sur2);color:var(--ac);font-weight:600;" value="${sr.nextDate}"></div>
+    <div class="fg"><label>Service Company / Technician</label><input class="fi" id="esr-tech" value="${sr.tech}"></div>
+    <div class="fg"><label>Service Type</label><select class="fi" id="esr-type">
+      ${['Preventive Maintenance (PM)','Corrective Maintenance','Annual Service','Major Overhaul','Inspection Only','Emergency Repair'].map(t=>`<option ${sr.type===t?'selected':''}>${t}</option>`).join('')}
+    </select></div>
+    <div class="fg"><label>Work Done / Remarks</label><textarea class="fi" id="esr-notes">${sr.notes||''}</textarea></div>
+    <div class="fr2"><div class="fg"><label>Cost</label><input class="fi" id="esr-cost" value="${sr.cost||''}"></div>
+    <div class="fg"><label>Reference / Invoice No.</label><input class="fi" id="esr-ref" value="${sr.ref||''}"></div></div>`;
+  document.getElementById('esr-ov').classList.remove('hidden');
+}
+function esrCalcNext(){
+  const ld=document.getElementById('esr-ld').value;
+  const m=parseInt(document.getElementById('esr-iv').value)||3;
+  if(!ld) return;
+  document.getElementById('esr-nd').value=calcNextDate(ld,m);
+}
+function saveESR(){
+  const sr=getSRecsArr(curSvc,curUnit)[esrIdx];
+  sr.lastDate=document.getElementById('esr-ld').value||sr.lastDate;
+  sr.interval=parseInt(document.getElementById('esr-iv').value)||sr.interval;
+  sr.nextDate=document.getElementById('esr-nd').value||sr.nextDate;
+  sr.tech=document.getElementById('esr-tech').value.trim()||sr.tech;
+  sr.type=document.getElementById('esr-type').value;
+  sr.notes=document.getElementById('esr-notes').value.trim();
+  sr.cost=document.getElementById('esr-cost').value.trim();
+  sr.ref=document.getElementById('esr-ref').value.trim();
+  save(); document.getElementById('esr-ov').classList.add('hidden'); renderSRTab(); renderHome();
+}
+
+// CHECKLIST (public)
+function renderChecklist(){
+  const svc=getSvc(curSvc);
+  const tasks=getTasks(svc,curUnit);
+  const freqs=[...new Set(tasks.map(t=>t.f))];
+  if(!freqs.length){
+    document.getElementById('dt-cl-items').innerHTML=`<div class="empty"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg><p>No checklist tasks defined yet for this system.</p></div>`;
+    return;
+  }
+  document.getElementById('dt-cl-items').innerHTML=freqs.map(freq=>`
+    <div class="cl-section">
+      <div class="cl-title">${freq} checks</div>
+      ${tasks.filter(t=>t.f===freq).map(t=>`
+        <div class="cl-item"><div class="cl-dot"></div><div class="cl-nm">${t.n}</div><span class="freq-b">${t.f}</span></div>`).join('')}
+    </div>`).join('');
+}
+
+// SUBMIT FORM
+function renderSubForm(){
+  const svc=getSvc(curSvc);
+  const tasks=getTasks(svc,curUnit);
+  document.getElementById('f-date').value=new Date().toISOString().split('T')[0];
+  const ftech=document.getElementById('f-tech');
+  ftech.value=curTech?curTech.name:'';
+  ftech.readOnly=!!curTech;
+  ftech.style.background=curTech?'var(--sur2)':'';
+  if(!tasks.length){
+    document.getElementById('sub-items').innerHTML=`<div class="card"><div class="empty"><p>No checklist tasks defined for this system. Add tasks in Admin → Systems &amp; Tasks.</p></div></div>`;
+    return;
+  }
+  document.getElementById('sub-items').innerHTML=`<div class="card">
+    <div class="card-t"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/></svg>${svc.name} — Checklist</div>
+    ${tasks.map((t,i)=>`<div class="ci">
+      <div class="ci-nm">${t.n}</div><div class="ci-fr">Frequency: ${t.f}</div>
+      <div class="sr2">
+        <button class="sb" onclick="setSt(this,'ok')" data-i="${i}">✓ OK</button>
+        <button class="sb" onclick="setSt(this,'issue')" data-i="${i}">⚠ Issue</button>
+        <button class="sb" onclick="setSt(this,'na')" data-i="${i}">— N/A</button>
+      </div>
+      <div class="ci-nt" id="cin${i}"><input type="text" placeholder="Describe issue…"></div>
+      ${t.extra?`<div class="fg" style="margin-top:8px"><label>${t.extra}</label><input class="fi" type="text" id="cex${i}" placeholder="Enter ${t.extra.toLowerCase()} reading…"></div>`:''}
+    </div>`).join('')}
+  </div>`;
+}
+function setSt(btn,st){
+  btn.closest('.sr2').querySelectorAll('.sb').forEach(b=>{b.classList.remove('s-ok','s-is','s-na');b.dataset.status='';});
+  btn.classList.add('s-'+st); btn.dataset.status=st;
+  document.getElementById('cin'+btn.dataset.i)?.classList.toggle('show',st==='issue');
+}
+function doSubmit(){
+  const tech=document.getElementById('f-tech').value.trim(), date=document.getElementById('f-date').value;
+  if(!tech||!date){showAl('al-er','Please enter your name and date.');return;}
+  const svc=getSvc(curSvc);
+  const tasks=getTasks(svc,curUnit);
+  const items=tasks.map((t,i)=>{
+    const btns=document.querySelectorAll(`.sr2 button[data-i="${i}"]`);
+    let st=''; btns.forEach(b=>{if(b.dataset.status)st=b.dataset.status;});
+    const ni=document.getElementById('cin'+i)?.querySelector('input');
+    const item={n:t.n,f:t.f,status:st,note:ni?ni.value.trim():''};
+    if(t.extra){
+      const ei=document.getElementById('cex'+i);
+      item.extraLabel=t.extra; item.extra=ei?ei.value.trim():'';
+    }
+    return item;
+  });
+  getRecs(curSvc,curUnit).push({id:Date.now(),date,shift:document.getElementById('f-shift').value,technician:tech,technicianId:curTech?curTech.id:null,remarks:document.getElementById('f-rem').value.trim(),items,submittedAt:new Date().toISOString()});
+  save();
+  showAl('al-ok','Checklist submitted successfully ✓');
+  document.getElementById('f-rem').value='';
+  updateDhSb();
+  renderSubForm();
+}
+function lockSub(){subUnlocked=false;curTech=null;document.getElementById('sub-lkd').style.display='';document.getElementById('sub-form').style.display='none';}
+
+// EDIT INSPECTION
+function openEdit(sId,ri,uId){editRec={sId,ri,uId:uId||null};openPIN('edit');}
+function doOpenEdit(){
+  const r=getRecs(editRec.sId,editRec.uId)[editRec.ri];
+  document.getElementById('edit-sub').textContent=fmtDate(r.date)+' · '+r.technician;
+  document.getElementById('edit-body').innerHTML=`
+    <div style="margin-bottom:12px">
+      <div class="fg"><label>Technician</label><input class="fi" id="e-tech" value="${r.technician}"></div>
+      <div class="fg"><label>Remarks</label><input class="fi" id="e-rem" value="${r.remarks||''}"></div>
+    </div>
+    <div style="max-height:320px;overflow-y:auto;">
+      ${r.items.map((it,i)=>`<div class="eir">
+        <div class="ei-nm">${it.n||it.name}<br><span style="font-size:11px;color:var(--tx3)">${it.f||it.freq}</span></div>
+        <div class="ei-sb">
+          <button class="esb ${it.status==='ok'?'s-ok':''}" onclick="eSt(this,${i},'ok')">OK</button>
+          <button class="esb ${it.status==='issue'?'s-is':''}" onclick="eSt(this,${i},'issue')">Issue</button>
+          <button class="esb ${it.status==='na'?'s-na':''}" onclick="eSt(this,${i},'na')">N/A</button>
+        </div></div>
+        <div class="ci-nt ${it.status==='issue'?'show':''}" id="en${i}"><input type="text" value="${it.note||''}" placeholder="Issue note…"></div>
+        ${it.extraLabel?`<div class="fg" style="margin-top:8px"><label>${it.extraLabel}</label><input class="fi" type="text" id="eex${i}" value="${it.extra||''}" placeholder="Enter ${it.extraLabel.toLowerCase()} reading…"></div>`:''}`).join('')}
+    </div>`;
+  document.getElementById('edit-ov').classList.remove('hidden');
+}
+function eSt(btn,i,st){btn.closest('.ei-sb').querySelectorAll('.esb').forEach(b=>b.classList.remove('s-ok','s-is','s-na'));btn.classList.add('s-'+st);document.getElementById('en'+i)?.classList.toggle('show',st==='issue');}
+function saveEdit(){
+  const r=getRecs(editRec.sId,editRec.uId)[editRec.ri];
+  r.technician=document.getElementById('e-tech').value.trim()||r.technician;
+  r.remarks=document.getElementById('e-rem').value.trim();
+  r.items.forEach((it,i)=>{
+    const row=document.querySelectorAll('#edit-body .ei-sb')[i];
+    if(!row) return;
+    const a=row.querySelector('.s-ok,.s-is,.s-na');
+    if(a) it.status=a.classList.contains('s-ok')?'ok':a.classList.contains('s-is')?'issue':'na';
+    const ni=document.getElementById('en'+i)?.querySelector('input'); if(ni) it.note=ni.value.trim();
+    const ei=document.getElementById('eex'+i); if(ei) it.extra=ei.value.trim();
+  });
+  save(); closeEdit(); renderRecs(); renderStats();
+}
+function closeEdit(){document.getElementById('edit-ov').classList.add('hidden');editRec=null;}
+
+// PIN
+function openPIN(target){
+  pinTarget=target; pinBuf='';
+  document.getElementById('pin-er').textContent='';
+  const titles={submit:'Technician PIN',admin:'Admin PIN',edit:'Technician PIN',service:'Technician PIN'};
+  const subs={submit:'Enter your personal 4-digit PIN.',admin:'Enter your admin PIN.',edit:'Enter your personal PIN to edit this record.',service:'Enter your personal PIN to access service records.'};
+  document.getElementById('pin-title').textContent=titles[target]||'Enter PIN';
+  document.getElementById('pin-sub').textContent=subs[target]||'Enter your PIN.';
+  updDots(); document.getElementById('pin-ov').classList.remove('hidden');
+}
+function closePIN(){document.getElementById('pin-ov').classList.add('hidden');pinBuf='';}
+function pk(k){
+  if(k==='X') pinBuf=pinBuf.slice(0,-1);
+  else if(k==='C') pinBuf='';
+  else if(pinBuf.length<4) pinBuf+=k;
+  updDots(); document.getElementById('pin-er').textContent='';
+  if(pinBuf.length===4) setTimeout(chkPIN,120);
+}
+function updDots(){for(let i=0;i<4;i++) document.getElementById('pd'+i).classList.toggle('on',i<pinBuf.length);}
+function chkPIN(){
+  if(pinTarget==='admin'){
+    if(pinBuf===S.adminPin){
+      closePIN();
+      adminUnlocked=true;document.getElementById('adm-lkd').style.display='none';document.getElementById('adm-panel').style.display='block';document.getElementById('adm-bn').value=S.buildingName;renderAdmSvcs();renderAdmTechs();showBackupStatus();
+    } else {
+      document.getElementById('pin-er').textContent='Incorrect PIN. Try again.';
+      pinBuf=''; updDots();
+    }
+    return;
+  }
+  const tech=(S.technicians||[]).find(t=>t.active!==false && t.pin===pinBuf);
+  if(tech){
+    curTech=tech;
+    closePIN();
+    if(pinTarget==='submit'){subUnlocked=true;document.getElementById('sub-lkd').style.display='none';document.getElementById('sub-form').style.display='block';renderSubForm();}
+    if(pinTarget==='edit'){doOpenEdit();}
+    if(pinTarget==='service'){srUnlocked=true;document.getElementById('sr-locked').style.display='none';document.getElementById('sr-content').style.display='block';renderSRTab();}
+  } else {
+    document.getElementById('pin-er').textContent='Incorrect PIN. Try again.';
+    pinBuf=''; updDots();
+  }
+}
+
+// QR
+function showQR(){qrForSvc(curSvc,curUnit);}
+function printQR(){
+  const svc=getSvc(curSvc||S.services[0].id);
+  const url=document.getElementById('qr-lb').textContent;
+  const w=window.open('','_blank');
+  w.document.write(`<html><body style="text-align:center;font-family:sans-serif;padding:48px"><div style="font-size:32px;margin-bottom:8px">${svc.icon}</div><h2 style="margin:0 0 4px">${S.buildingName}</h2><h3 style="margin:0 0 4px;color:#666;font-weight:500">${svc.name}</h3><p style="color:#999;margin:0 0 20px;font-size:14px">Scan to view checklist history</p>${document.getElementById('qr-box').innerHTML}<p style="margin-top:16px;font-size:11px;color:#aaa">${url}</p></body></html>`);
+  w.document.close(); w.print();
+}
+
+// TECHNICIANS
+function renderAdmTechs(){
+  const list=S.technicians||[];
+  document.getElementById('adm-techs').innerHTML = list.length ? list.map((t,i)=>`
+    <div class="ter" style="flex-wrap:wrap">
+      <input class="fi" style="max-width:160px" value="${t.name}" onchange="updTech(${i},'name',this.value)">
+      <input class="fi" style="max-width:90px" maxlength="4" inputmode="numeric" value="${t.pin}" onchange="updTech(${i},'pin',this.value)">
+      <label style="font-size:12px;display:flex;align-items:center;gap:4px;white-space:nowrap;color:var(--tx2)">
+        <input type="checkbox" ${t.active!==false?'checked':''} onchange="updTech(${i},'active',this.checked)"> Active
+      </label>
+      <div class="ico-b del" onclick="rmTech(${i})" title="Remove technician"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></div>
+    </div>`).join('') : `<p style="font-size:12px;color:var(--tx2)">No technicians added yet — add one below.</p>`;
+}
+function updTech(i,field,val){
+  const t=(S.technicians||[])[i]; if(!t) return;
+  if(field==='pin'){
+    val=String(val).replace(/\D/g,'').slice(0,4);
+    if(val.length!==4){ alert('PIN must be exactly 4 digits.'); renderAdmTechs(); return; }
+    if(S.technicians.some((x,xi)=>xi!==i && x.active!==false && x.pin===val)){ alert('That PIN is already used by another active technician.'); renderAdmTechs(); return; }
+  }
+  if(field==='name'){
+    val=String(val).trim();
+    if(!val){ alert('Name cannot be empty.'); renderAdmTechs(); return; }
+  }
+  t[field]=val; save(); renderAdmTechs();
+}
+function rmTech(i){
+  const t=(S.technicians||[])[i]; if(!t) return;
+  if(!confirm(`Remove "${t.name}"? They will no longer be able to log in. Their past submissions stay in history.`)) return;
+  S.technicians.splice(i,1); save(); renderAdmTechs();
+}
+function addTech(){
+  const nameEl=document.getElementById('nt-name'), pinEl=document.getElementById('nt-pin'), msg=document.getElementById('nt-msg');
+  const name=nameEl.value.trim();
+  const pin=pinEl.value.replace(/\D/g,'').slice(0,4);
+  msg.style.color='var(--is)';
+  if(!name){ msg.textContent='Enter a technician name.'; return; }
+  if(pin.length!==4){ msg.textContent='PIN must be exactly 4 digits.'; return; }
+  if((S.technicians||[]).some(t=>t.active!==false && t.pin===pin)){ msg.textContent='That PIN is already used by another active technician.'; return; }
+  if(!S.technicians) S.technicians=[];
+  S.technicians.push({id:Date.now(),name,pin,active:true});
+  save();
+  nameEl.value=''; pinEl.value='';
+  msg.style.color='var(--ok)'; msg.textContent='Technician added ✓';
+  renderAdmTechs();
+}
+
+// ADMIN
+function saveBN(){
+  const v=document.getElementById('adm-bn').value.trim(); if(!v) return;
+  S.buildingName=v; save();
+  document.getElementById('hdr-bn').textContent=v; document.getElementById('home-bn').textContent=v;
+  const b=event.target; b.textContent='Saved!'; setTimeout(()=>b.textContent='Save',1500);
+}
+function changePIN(type){
+  const np=document.getElementById(type==='tech'?'tp-n':'ap-n').value;
+  const cp=document.getElementById(type==='tech'?'tp-c':'ap-c').value;
+  const msg=document.getElementById(type==='tech'?'tp-msg':'ap-msg');
+  if(!/^\d{4}$/.test(np)){msg.style.color='var(--is)';msg.textContent='PIN must be 4 digits.';return;}
+  if(np!==cp){msg.style.color='var(--is)';msg.textContent='PINs do not match.';return;}
+  if(type==='tech') S.techPin=np; else S.adminPin=np;
+  save(); msg.style.color='var(--ok)'; msg.textContent='PIN updated.';
+  document.getElementById(type==='tech'?'tp-n':'ap-n').value=''; document.getElementById(type==='tech'?'tp-c':'ap-c').value='';
+  setTimeout(()=>msg.textContent='',2500);
+}
+
+let admExpUnit={}; // {svcId: unitId} currently expanded unit per service
+
+function renderAdmSvcs(){
+  document.getElementById('adm-svcs').innerHTML=S.services.map((svc,si)=>{
+    const hasUnits=svc.units&&svc.units.length;
+    return `
+    <div class="svc-adm-box">
+      <div class="svc-adm-hdr">
+        <span style="font-size:18px">${svc.icon}</span>
+        <strong style="font-size:14px;flex:1">${svc.name}</strong>
+        ${!hasUnits?`<span style="font-size:12px;color:var(--tx2);margin-right:8px">${svc.tasks.length} tasks</span>`:''}
+        <div class="ico-b del" onclick="delSystem(${si})" title="Delete system"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></div>
+      </div>
+      ${!hasUnits?`
+      ${svc.tasks.map((t,ti)=>`<div class="ter">
+        <span>${t.n}${t.extra?` <span style="font-size:10px;padding:2px 6px;border-radius:10px;background:var(--ac2);color:var(--ac)">+ ${t.extra}</span>`:''}</span>
+        <span style="font-size:11px;color:var(--tx3);margin-right:6px">${t.f}</span>
+        <div class="ico-b del" onclick="rmTask(${si},${ti})" title="Delete task"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
+      </div>`).join('')}
+      <div class="add-r" style="padding-left:0;margin-top:10px">
+        <input type="text" id="nt${si}" placeholder="New task name">
+        <select class="fi" id="nf${si}" style="width:110px;padding:7px 6px;font-size:12px;flex-shrink:0;">
+          <option>Daily</option><option>Weekly</option><option>Monthly</option><option>Quarterly</option>
+        </select>
+        <input type="text" id="ne${si}" list="extra-presets" placeholder="Reading field (optional)" style="width:160px;flex-shrink:0;">
+        <button class="btn btn-p" onclick="addTask(${si})" style="flex-shrink:0">+ Add</button>
+      </div>`:`<p style="font-size:12px;color:var(--tx2);margin-bottom:4px">This system uses per-unit checklists — expand a unit below to manage its tasks.</p>`}
+      <hr class="divider" style="margin:14px 0">
+      <p style="font-size:12px;font-weight:600;color:var(--tx2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Sub-categories / Units</p>
+      ${hasUnits?svc.units.map((u,ui)=>{
+        const open=admExpUnit[svc.id]===u.id;
+        const tasks=u.tasks||[];
+        return `<div class="unit-adm-box">
+          <div class="ter" style="cursor:pointer" onclick="toggleAdmUnit('${svc.id}','${u.id}')">
+            <span>${open?'▾':'▸'} ${u.name}</span>
+            <span style="font-size:11px;color:var(--tx3);margin-right:6px">${tasks.length} tasks · ${(getRecs(svc.id,u.id)||[]).length} records</span>
+            <div class="ico-b del" onclick="event.stopPropagation();delUnit(${si},${ui})" title="Delete unit"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
+          </div>
+          ${open?`<div style="padding:0 0 4px 14px">
+            ${tasks.map((t,ti)=>`<div class="ter">
+              <span>${t.n}${t.extra?` <span style="font-size:10px;padding:2px 6px;border-radius:10px;background:var(--ac2);color:var(--ac)">+ ${t.extra}</span>`:''}</span>
+              <span style="font-size:11px;color:var(--tx3);margin-right:6px">${t.f}</span>
+              <div class="ico-b del" onclick="rmUnitTask('${svc.id}','${u.id}',${ti})" title="Delete task"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
+            </div>`).join('')||`<p style="font-size:12px;color:var(--tx2);margin:6px 0">No checklist tasks yet for ${u.name}.</p>`}
+            <div class="add-r" style="padding-left:0;margin-top:10px">
+              <input type="text" id="nut_${svc.id}_${u.id}" placeholder="New task name for ${u.name}">
+              <select class="fi" id="nuf_${svc.id}_${u.id}" style="width:110px;padding:7px 6px;font-size:12px;flex-shrink:0;">
+                <option>Daily</option><option>Weekly</option><option>Monthly</option><option>Quarterly</option>
+              </select>
+              <input type="text" id="nue_${svc.id}_${u.id}" list="extra-presets" placeholder="Reading field (optional)" style="width:160px;flex-shrink:0;">
+              <button class="btn btn-p" onclick="addUnitTask('${svc.id}','${u.id}')" style="flex-shrink:0">+ Add</button>
+            </div>
+          </div>`:''}
+        </div>`;
+      }).join(''):`<p style="font-size:12px;color:var(--tx2);margin-bottom:8px">No sub-categories. Add units like "Chiller 01", "Chiller 02" to track each unit separately, each with its own checklist. Leave empty to manage this system as a single unit.</p>`}
+      <div class="add-r" style="padding-left:0;margin-top:10px">
+        <input type="text" id="nu${si}" placeholder="e.g. ${svc.name} 0${(svc.units?.length||0)+1}">
+        <button class="btn btn-p" onclick="addUnit(${si})" style="flex-shrink:0">+ Add Unit</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleAdmUnit(svcId,uId){
+  admExpUnit[svcId]=(admExpUnit[svcId]===uId)?null:uId;
+  renderAdmSvcs();
+}
+
+function addUnitTask(svcId,uId){
+  const v=document.getElementById(`nut_${svcId}_${uId}`).value.trim();
+  const f=document.getElementById(`nuf_${svcId}_${uId}`).value;
+  const ex=document.getElementById(`nue_${svcId}_${uId}`).value;
+  if(!v) return;
+  const svc=getSvc(svcId);
+  const u=svc.units.find(x=>x.id===uId);
+  if(!u.tasks) u.tasks=[];
+  const task={n:v,f}; if(ex) task.extra=ex;
+  u.tasks.push(task);
+  save(); renderAdmSvcs();
+  if(curSvc===svcId&&curUnit===uId){renderChecklist();renderSubForm();}
+}
+
+function rmUnitTask(svcId,uId,ti){
+  if(!confirm('Delete this task? This only removes it from the checklist template.')) return;
+  const svc=getSvc(svcId);
+  const u=svc.units.find(x=>x.id===uId);
+  u.tasks.splice(ti,1);
+  save(); renderAdmSvcs();
+  if(curSvc===svcId&&curUnit===uId){renderChecklist();renderSubForm();}
+}
+
+function addUnit(si){
+  const inp=document.getElementById('nu'+si);
+  const name=inp.value.trim();
+  if(!name) return;
+  const svc=S.services[si];
+  if(!svc.units) svc.units=[];
+  if(svc.units.find(u=>u.name.toLowerCase()===name.toLowerCase())) return;
+  const id=name.toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'')+'_'+Date.now();
+  svc.units.push({id,name,tasks:JSON.parse(JSON.stringify(svc.tasks||[]))});
+  if(!S.records[svc.id]||Array.isArray(S.records[svc.id])) S.records[svc.id]={};
+  if(!S.serviceRecs[svc.id]||Array.isArray(S.serviceRecs[svc.id])) S.serviceRecs[svc.id]={};
+  S.records[svc.id][id]=[]; S.serviceRecs[svc.id][id]=[];
+  inp.value='';
+  save(); renderAdmSvcs(); renderHome();
+  if(curSvc===svc.id) { curUnit=curUnit||id; renderUnitBar(); }
+}
+
+function delUnit(si,ui){
+  const svc=S.services[si];
+  const u=svc.units[ui];
+  if(!confirm(`Delete "${u.name}"?\n\nThis will also delete all inspection records and service records for this unit. This cannot be undone.`)) return;
+  svc.units.splice(ui,1);
+  if(S.records[svc.id]) delete S.records[svc.id][u.id];
+  if(S.serviceRecs[svc.id]) delete S.serviceRecs[svc.id][u.id];
+  if(admExpUnit[svc.id]===u.id) admExpUnit[svc.id]=null;
+  if(!svc.units.length){
+    S.records[svc.id]=[]; S.serviceRecs[svc.id]=[];
+  }
+  save(); renderAdmSvcs(); renderHome();
+  if(curSvc===svc.id){
+    curUnit = svc.units.length ? (svc.units.find(x=>x.id===curUnit)?curUnit:svc.units[0].id) : null;
+    renderUnitBar(); updateDhSb();
+  }
+}
+
+function addSystem(){
+  const name=document.getElementById('ns-name').value.trim();
+  const icon=document.getElementById('ns-icon').value.trim()||'⚙️';
+  const color=document.getElementById('ns-color').value;
+  const msg=document.getElementById('ns-msg');
+  if(!name){msg.style.color='var(--is)';msg.textContent='Please enter a system name.';return;}
+  if(S.services.find(s=>s.name.toLowerCase()===name.toLowerCase())){msg.style.color='var(--is)';msg.textContent='A system with this name already exists.';return;}
+  const id=name.toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'')+'_'+Date.now();
+  S.services.push({id,name,icon,color,tasks:[],units:[]});
+  S.records[id]=[]; S.serviceRecs[id]=[];
+  save(); renderAdmSvcs(); renderHome();
+  document.getElementById('ns-name').value=''; document.getElementById('ns-icon').value='';
+  msg.style.color='var(--ok)'; msg.textContent='System "'+name+'" added!';
+  setTimeout(()=>msg.textContent='',2500);
+}
+
+function delSystem(si){
+  const s=S.services[si];
+  if(!confirm(`Delete "${s.name}"?\n\nThis will also delete all inspection records and service records for this system. This cannot be undone.`)) return;
+  S.services.splice(si,1);
+  delete S.records[s.id]; delete S.serviceRecs[s.id];
+  save(); renderAdmSvcs(); renderHome();
+}
+
+function addTask(si){
+  const v=document.getElementById('nt'+si).value.trim(), f=document.getElementById('nf'+si).value;
+  const ex=document.getElementById('ne'+si).value;
+  if(!v) return;
+  const task={n:v,f}; if(ex) task.extra=ex;
+  S.services[si].tasks.push(task); save(); renderAdmSvcs();
+}
+function rmTask(si,ti){
+  if(!confirm('Delete this task? This only removes it from the checklist template.')) return;
+  S.services[si].tasks.splice(ti,1); save(); renderAdmSvcs();
+}
+
+// EXPORT
+function expCSV(){
+  const rows=[['Type','Service','Date/Last Date','Next Date','Interval','Technician/Company','Shift/Type','Status/Notes','Reading','Cost','Ref','Submitted At']];
+  S.services.forEach(s=>{
+    if(s.units&&s.units.length){
+      s.units.forEach(u=>{
+        const label=s.name+' - '+u.name;
+        (getRecs(s.id,u.id)||[]).forEach(r=>r.items.forEach(it=>rows.push(['Inspection',label,r.date,'','',r.technician,r.shift,it.status,it.note||'',(it.extraLabel&&it.extra)?(it.extraLabel+': '+it.extra):'',r.remarks||'',r.submittedAt||''])));
+        (getSRecsArr(s.id,u.id)||[]).forEach(sr=>rows.push(['Service Record',label,sr.lastDate,sr.nextDate,sr.interval+'m',sr.tech,'',sr.type+'. '+sr.notes,'',sr.cost||'',sr.ref||'',sr.createdAt||'']));
+      });
+    } else {
+      (S.records[s.id]||[]).forEach(r=>r.items.forEach(it=>rows.push(['Inspection',s.name,r.date,'','',r.technician,r.shift,it.status,it.note||'',(it.extraLabel&&it.extra)?(it.extraLabel+': '+it.extra):'',r.remarks||'',r.submittedAt||''])));
+      (S.serviceRecs[s.id]||[]).forEach(sr=>rows.push(['Service Record',s.name,sr.lastDate,sr.nextDate,sr.interval+'m',sr.tech,'',sr.type+'. '+sr.notes,'',sr.cost||'',sr.ref||'',sr.createdAt||'']));
+    }
+  });
+  dl('maintenance_export.csv',rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n'),'text/csv');
+}
+function expJSON(){dl('maintenance_backup.json',JSON.stringify(S,null,2),'application/json');}
+function impJSON(e){
+  const f=e.target.files[0]; if(!f) return;
+  const rd=new FileReader();
+  rd.onload=ev=>{try{const p=JSON.parse(ev.target.result);if(confirm('Restore backup? Replaces all data.')){S={...S,...p};save();load();goHome();alert('Restored.');}}catch{alert('Invalid file.');}};
+  rd.readAsText(f); e.target.value='';
+}
+
+// UTILS
+function getSvc(id){return S.services.find(s=>s.id===id)||S.services[0];}
+function findRI(sId,recId,uId){return getRecs(sId,uId).findIndex(r=>r.id===recId);}
+function fmtDate(d){if(!d)return'';return new Date(d+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});}
+function showAl(id,msg){const el=document.getElementById(id);el.textContent=msg;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),3500);}
+function show(id){document.getElementById(id).classList.add('show');}
+function hide(id){document.getElementById(id).classList.remove('show');}
+function dl(name,content,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([content],{type}));a.download=name;a.click();}
+
+// INIT
+async function init(){
+  await load();
+  // Hide loading overlay — Firebase fetch complete
+  const overlay = document.getElementById('loading-overlay');
+  if(overlay) overlay.style.display = 'none';
+  const p=new URLSearchParams(location.search);
+  const svc=p.get('svc');
+  const unit=p.get('unit');
+  if(svc&&S.services.find(s=>s.id===svc)) openSvc(svc,unit);
+  else goHome();
+}
+init();
+</script>
+</body>
+</html>
